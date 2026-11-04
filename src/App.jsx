@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import ComingSoon from './components/ComingSoon'
 import Assets from './pages/Assets'
+import Dashboard from './pages/Dashboard'
+import MonthlyUpdate from './pages/MonthlyUpdate'
 import { usePortfolio } from './lib/usePortfolio'
 
 // Üst menüdeki sekmeler
@@ -14,7 +16,7 @@ const TABS = [
 export default function App() {
   // Tüm veri burada bir kez yüklenir ve sekmelere aktarılır.
   const portfolio = usePortfolio()
-  const [tab, setTab] = useState('varliklar')
+  const [tab, setTab] = useState('panel')
 
   return (
     <div className="min-h-screen">
@@ -47,19 +49,9 @@ export default function App() {
       </header>
 
       <main className="mx-auto max-w-5xl px-4 py-6">
-        {tab === 'panel' && (
-          <ComingSoon
-            title="Panel"
-            text="Toplam varlık, artış grafiği ve dağılım grafikleri 3. aşamada burada olacak."
-          />
-        )}
+        {tab === 'panel' && <Dashboard portfolio={portfolio} goTo={setTab} />}
         {tab === 'varliklar' && <Assets portfolio={portfolio} />}
-        {tab === 'guncelleme' && (
-          <ComingSoon
-            title="Aylık Güncelleme"
-            text="Tüm varlıklarının o ayki değerini tek ekranda girme özelliği 2. aşamada geliyor."
-          />
-        )}
+        {tab === 'guncelleme' && <MonthlyUpdate portfolio={portfolio} goToAssets={() => setTab('varliklar')} />}
         {tab === 'ayarlar' && (
           <ComingSoon title="Ayarlar" text="JSON yedekleme, içe aktarma ve örnek veri 4. aşamada geliyor." />
         )}

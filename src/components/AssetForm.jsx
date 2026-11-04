@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import SuggestInput from './SuggestInput'
 import { ASSET_TYPES } from '../lib/constants'
 import { amountToInput, currentMonth, formatMonth, parseAmount } from '../lib/format'
 
@@ -51,19 +52,14 @@ export default function AssetForm({ asset, currentValue, institutions, onSave, o
 
         <label className="block">
           <span className="mb-1 block text-sm font-medium text-slate-600">Kurum / Banka</span>
-          <input
+          {/* Daha önce yazılan kurumları öneri olarak sunar */}
+          <SuggestInput
             className={inputClass}
             value={institution}
-            onChange={(e) => setInstitution(e.target.value)}
+            onChange={setInstitution}
+            suggestions={institutions}
             placeholder="ör. Ziraat Bankası"
-            list="institution-list"
           />
-          {/* Daha önce yazılan kurumları öneri olarak sunar */}
-          <datalist id="institution-list">
-            {institutions.map((i) => (
-              <option key={i} value={i} />
-            ))}
-          </datalist>
         </label>
 
         <label className="block">

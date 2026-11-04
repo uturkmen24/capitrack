@@ -11,10 +11,36 @@ export function formatTL(n) {
   return tl.format(n)
 }
 
+/** 5000 -> "+₺5.000", -5000 -> "−₺5.000" (değişimleri göstermek için) */
+export function formatSignedTL(n) {
+  const sign = n > 0 ? '+' : n < 0 ? '−' : ''
+  return sign + tl.format(Math.abs(n))
+}
+
 /** Bugünün ayı, "2026-11" biçiminde. Aylık kayıtların anahtarı budur. */
 export function currentMonth() {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+/** "2026-11" + 1 -> "2026-12", "2026-01" + -1 -> "2025-12" */
+export function shiftMonth(key, delta) {
+  const [y, m] = key.split('-').map(Number)
+  const d = new Date(y, m - 1 + delta, 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+/** "2026-11" -> "Kas 26" (grafik eksenleri için kısa biçim) */
+export function formatMonthShort(key) {
+  const [y, m] = key.split('-').map(Number)
+  const label = new Date(y, m - 1, 1).toLocaleDateString('tr-TR', { month: 'short' })
+  return `${label} ${String(y).slice(2)}`
+}
+
+/** 0.0512 -> "+%5,1" */
+export function formatPercent(ratio) {
+  const sign = ratio > 0 ? '+' : ratio < 0 ? '−' : ''
+  return `${sign}%${Math.abs(ratio * 100).toLocaleString('tr-TR', { maximumFractionDigits: 1 })}`
 }
 
 /** "2026-11" -> "Kasım 2026" */
