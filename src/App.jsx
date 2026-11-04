@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import ComingSoon from './components/ComingSoon'
 import Assets from './pages/Assets'
 import Dashboard from './pages/Dashboard'
 import MonthlyUpdate from './pages/MonthlyUpdate'
+import Settings from './pages/Settings'
 import { usePortfolio } from './lib/usePortfolio'
 
 // Üst menüdeki sekmeler
@@ -52,9 +52,7 @@ export default function App() {
         {tab === 'panel' && <Dashboard portfolio={portfolio} goTo={setTab} />}
         {tab === 'varliklar' && <Assets portfolio={portfolio} />}
         {tab === 'guncelleme' && <MonthlyUpdate portfolio={portfolio} goToAssets={() => setTab('varliklar')} />}
-        {tab === 'ayarlar' && (
-          <ComingSoon title="Ayarlar" text="JSON yedekleme, içe aktarma ve örnek veri 4. aşamada geliyor." />
-        )}
+        {tab === 'ayarlar' && <Settings portfolio={portfolio} />}
       </main>
     </div>
   )

@@ -1,6 +1,7 @@
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { getType } from '../lib/constants'
 import { breakdown, timeline } from '../lib/analytics'
+import { createDemoData } from '../lib/demoData'
 import { formatMonth, formatMonthShort, formatPercent, formatSignedTL, formatTL } from '../lib/format'
 
 // Grafiklerin ortak "çerçeve" renkleri: ızgara, eksen, eksen yazıları. Veri öne çıksın diye soluk.
@@ -33,12 +34,22 @@ export default function Dashboard({ portfolio, goTo }) {
             ? 'Başlamak için yatırımlarını ekle. Panel, girdiğin değerlerden otomatik oluşur.'
             : 'Varlıklarının bu ayki değerlerini girdiğinde grafikler burada belirecek.'}
         </p>
-        <button
-          onClick={() => goTo(noAssets ? 'varliklar' : 'guncelleme')}
-          className="mt-4 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-        >
-          {noAssets ? 'Varlık ekle' : 'Aylık güncellemeye git'}
-        </button>
+        <div className="mt-4 flex flex-wrap justify-center gap-2">
+          <button
+            onClick={() => goTo(noAssets ? 'varliklar' : 'guncelleme')}
+            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+          >
+            {noAssets ? 'Varlık ekle' : 'Aylık güncellemeye git'}
+          </button>
+          {noAssets && (
+            <button
+              onClick={() => portfolio.replaceData(createDemoData())}
+              className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Örnek veriyle dene
+            </button>
+          )}
+        </div>
       </div>
     )
   }

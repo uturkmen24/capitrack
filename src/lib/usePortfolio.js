@@ -90,5 +90,10 @@ export function usePortfolio() {
     })
   }
 
-  return { data, addAsset, updateAsset, deleteAsset, saveMonth }
+  /** Tüm veriyi değiştirir (yedekten geri yükleme, örnek veri, sıfırlama). */
+  function replaceData(next) {
+    setData(next)
+  }
+
+  return { data, addAsset, updateAsset, deleteAsset, saveMonth, replaceData }
 }
