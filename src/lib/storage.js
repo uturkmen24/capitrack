@@ -2,18 +2,23 @@
 // LocalStorage sadece yazı (string) saklar; bu yüzden veriyi JSON yazısına çevirip saklıyoruz.
 
 const KEY = 'capitrack:data'
+const OLD_BACKUP_KEY = 'capitrack:data:v1-yedek'
+export const DATA_VERSION = 2
 
 /**
- * Verinin şekli:
+ * Verinin şekli (sürüm 2):
  * {
- *   version: 1,
- *   assets:  [{ id, name, type, institution, note, createdAt }],
- *   records: { "2026-11": { "<varlık id>": { value: 45000 } } },
- *   goal:    { name, target, monthly, annualReturn } | null
+ *   version: 2,
+ *   assets:       [{ id, name, type, institution, note, createdAt }],
+ *   transactions: [{ id, assetId, date: "2026-11-05", kind: "buy" | "sell", quantity, price }],
+ *                 (mevduat gibi tutarla takip edilenlerde quantity = tutar, price = 1)
+ *   prices:       { "2026-11": { "<varlık id>": 312.5 } }
+ *                 (ay sonu birim fiyatı; mevduatta o ayın bakiyesi)
+ *   goal:         { name, target, monthly, annualReturn } | null
  * }
  */
 export function emptyData() {
-  return { version: 1, assets: [], records: {}, goal: null }
+  return { version: DATA_VERSION, assets: [], transactions: [], prices: {}, goal: null }
 }
 
 /** Hedef nesnesini kontrol eder; geçersizse null döner. */
@@ -32,12 +37,22 @@ export function loadData() {
     const raw = localStorage.getItem(KEY)
     if (!raw) return emptyData()
     const parsed = JSON.parse(raw)
-    return { ...emptyData(), ...parsed }
+    if (parsed?.version !== DATA_VERSION) {
+      // Eski sürümün verisi (adet / maliyet bilgisi yok). Kararımız: yeni sistemle sıfırdan başla.
+      // Yine de silmiyoruz; ayrı bir anahtara yedekliyoruz ki gerekirse kurtarılabilsin.
+      localStorage.setItem(OLD_BACKUP_KEY, raw)
+      return emptyData()
+    }
+    return validateData(parsed)
   } catch {
     // Gizli sekme, engellenmiş depolama ya da bozuk veri: boş başla, uygulama çökmesin.
     return emptyData()
   }
 }
+
+const isMonth = (m) => /^\d{4}-\d{2}$/.test(m)
+const isDate = (d) => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)
+const positive = (n) => Number.isFinite(n) && n > 0
 
 /**
  * Dışarıdan gelen (içe aktarılan) veriyi kontrol eder ve temizler.
@@ -47,6 +62,12 @@ export function validateData(input) {
   if (!input || typeof input !== 'object' || !Array.isArray(input.assets)) {
     throw new Error('Bu dosya bir CapiTrack yedeği değil ("assets" listesi bulunamadı).')
   }
+  if (input.version !== DATA_VERSION) {
+    throw new Error(
+      'Bu yedek CapiTrack’in eski sürümüne ait; içinde adet ve alış maliyeti bilgisi yok. Yeni sürümde varlıkları alış işlemleriyle yeniden eklemen gerekiyor.',
+    )
+  }
+
   const assets = input.assets
     .filter((a) => a && typeof a.id === 'string' && typeof a.name === 'string')
     .map((a) => ({
@@ -59,16 +80,30 @@ export function validateData(input) {
     }))
   const ids = new Set(assets.map((a) => a.id))
 
-  const records = {}
-  for (const [month, row] of Object.entries(input.records ?? {})) {
-    if (!/^\d{4}-\d{2}$/.test(month) || !row || typeof row !== 'object') continue
+  const transactions = (Array.isArray(input.transactions) ? input.transactions : [])
+    .filter(
+      (t) =>
+        t &&
+        typeof t.id === 'string' &&
+        ids.has(t.assetId) &&
+        isDate(t.date) &&
+        (t.kind === 'buy' || t.kind === 'sell') &&
+        positive(t.quantity) &&
+        positive(t.price),
+    )
+    .map((t) => ({ id: t.id, assetId: t.assetId, date: t.date, kind: t.kind, quantity: t.quantity, price: t.price }))
+
+  const prices = {}
+  for (const [month, row] of Object.entries(input.prices ?? {})) {
+    if (!isMonth(month) || !row || typeof row !== 'object') continue
     const clean = {}
-    for (const [id, rec] of Object.entries(row)) {
-      if (ids.has(id) && Number.isFinite(rec?.value) && rec.value >= 0) clean[id] = { value: rec.value }
+    for (const [id, v] of Object.entries(row)) {
+      if (ids.has(id) && Number.isFinite(v) && v >= 0) clean[id] = v
     }
-    if (Object.keys(clean).length > 0) records[month] = clean
+    if (Object.keys(clean).length > 0) prices[month] = clean
   }
-  return { version: 1, assets, records, goal: validateGoal(input.goal) }
+
+  return { version: DATA_VERSION, assets, transactions, prices, goal: validateGoal(input.goal) }
 }
 
 export function saveData(data) {

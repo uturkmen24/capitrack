@@ -1,26 +1,32 @@
 import { useState } from 'react'
 import SuggestInput from './SuggestInput'
-import { ASSET_TYPES } from '../lib/constants'
-import { amountsHidden, amountToInput, currentMonth, formatMonth, parseAmount } from '../lib/format'
-
-const inputClass =
-  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20'
+import TradeFields, { inputClass } from './TradeFields'
+import { ASSET_TYPES, getType } from '../lib/constants'
+import { emptyTrade, isTradeEmpty, readTrade } from '../lib/trade'
 
 // Varlık ekleme ve düzenleme formu. "asset" verilirse düzenleme modunda açılır.
-export default function AssetForm({ asset, currentValue, institutions, onSave, onCancel }) {
+// Yeni varlık eklerken isteğe bağlı olarak ilk alış da girilir (maliyet hesabı buradan başlar).
+// lockedMode: varlığın işlemleri varsa, takip şekli farklı bir türe (ör. hisse → mevduat) geçilemez.
+export default function AssetForm({ asset, lockedMode, institutions, onSave, onCancel }) {
   const [name, setName] = useState(asset?.name ?? '')
-  const [type, setType] = useState(asset?.type ?? 'altin')
+  const [type, setType] = useState(asset?.type ?? 'hisse')
   const [institution, setInstitution] = useState(asset?.institution ?? '')
   const [note, setNote] = useState(asset?.note ?? '')
-  const [value, setValue] = useState(amountToInput(currentValue))
+  const [trade, setTrade] = useState(emptyTrade())
   const [error, setError] = useState('')
+  const typeInfo = getType(type)
+  const typeOptions = lockedMode ? ASSET_TYPES.filter((t) => t.mode === lockedMode) : ASSET_TYPES
 
   function handleSubmit(e) {
     e.preventDefault() // tarayıcının sayfayı yenilemesini engelle
-    const amount = parseAmount(value)
     if (!name.trim()) return setError('Lütfen varlığa bir ad ver.')
-    if (Number.isNaN(amount)) return setError('Değer bir sayı olmalı (ör. 45.000 veya 45000,50).')
-    onSave({ name: name.trim(), type, institution: institution.trim(), note: note.trim() }, amount)
+    let firstTx = null
+    if (!asset && !isTradeEmpty(trade)) {
+      const r = readTrade(trade, 'buy', typeInfo.mode === 'amount')
+      if (r.error) return setError(r.error)
+      firstTx = r.tx
+    }
+    onSave({ name: name.trim(), type, institution: institution.trim(), note: note.trim() }, firstTx)
   }
 
   return (
@@ -34,7 +40,7 @@ export default function AssetForm({ asset, currentValue, institutions, onSave, o
             className={inputClass}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="ör. Gram Altın, THYAO, Altın Fonu"
+            placeholder="ör. THYAO, Gram Altın, Altın Fonu"
             autoFocus
           />
         </label>
@@ -42,7 +48,7 @@ export default function AssetForm({ asset, currentValue, institutions, onSave, o
         <label className="block">
           <span className="mb-1 block text-sm font-medium text-slate-600">Tür</span>
           <select className={inputClass} value={type} onChange={(e) => setType(e.target.value)}>
-            {ASSET_TYPES.map((t) => (
+            {typeOptions.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.label}
               </option>
@@ -63,28 +69,30 @@ export default function AssetForm({ asset, currentValue, institutions, onSave, o
         </label>
 
         <label className="block">
-          <span className="mb-1 block text-sm font-medium text-slate-600">
-            {formatMonth(currentMonth())} değeri (₺)
-          </span>
-          <input
-            className={`${inputClass} ${amountsHidden() ? 'blur-sm focus:blur-none' : ''}`}
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            placeholder="ör. 45.000"
-            inputMode="decimal"
-          />
-        </label>
-
-        <label className="block sm:col-span-2">
           <span className="mb-1 block text-sm font-medium text-slate-600">Not</span>
           <input
             className={inputClass}
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="İsteğe bağlı, ör. 15 gram, vadesi Mart"
+            placeholder="İsteğe bağlı, ör. Türk Hava Yolları"
           />
         </label>
       </div>
+
+      {!asset && (
+        <div className="mt-5 rounded-xl bg-slate-50 p-4">
+          <p className="mb-3 text-sm font-medium">
+            {typeInfo.mode === 'amount' ? 'İlk yatırılan para' : 'İlk alış'}{' '}
+            <span className="font-normal text-slate-500">(isteğe bağlı, sonra “Al / Sat” ile de ekleyebilirsin)</span>
+          </p>
+          <TradeFields type={typeInfo} value={trade} onChange={setTrade} />
+        </div>
+      )}
+      {lockedMode && (
+        <p className="mt-3 text-xs text-slate-500">
+          Bu varlığın işlemleri olduğu için sadece aynı şekilde takip edilen türler arasında değişiklik yapılabilir.
+        </p>
+      )}
 
       {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 

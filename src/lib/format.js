@@ -52,6 +52,22 @@ export function formatSignedTL(n) {
   return sign + tl.format(Math.abs(n))
 }
 
+/** 312.5 -> "₺312,50" (birim fiyatlar için kuruşlu biçim). Fiyat piyasa bilgisidir, gizlenmez. */
+export function formatPrice(n) {
+  return n.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY', minimumFractionDigits: 2, maximumFractionDigits: 4 })
+}
+
+/** 1250.5 -> "1.250,5" (adet / gram / pay). Adet, elindeki miktarı ele verdiği için gizlilik modunda gizlenir. */
+export function formatQty(n) {
+  return hidden ? '***' : n.toLocaleString('tr-TR', { maximumFractionDigits: 4 })
+}
+
+/** Bugünün tarihi "2026-11-05" biçiminde */
+export function today() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 /** "2026-11-05" -> "5 Kasım 2026" */
 export function formatDate(iso) {
   return new Date(`${iso}T00:00:00`).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -116,7 +132,7 @@ export function parseAmount(input) {
   return Number.isFinite(n) && n >= 0 ? n : NaN
 }
 
-/** 45000.5 -> "45000,5" (form alanına geri yazmak için) */
+/** 45000.5 -> "45.000,5" (form alanına geri yazmak için; parseAmount bu yazımı geri okuyabilir) */
 export function amountToInput(n) {
-  return n == null ? '' : String(n).replace('.', ',')
+  return n == null ? '' : n.toLocaleString('tr-TR', { maximumFractionDigits: 6 })
 }

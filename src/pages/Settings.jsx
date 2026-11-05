@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { createDemoData } from '../lib/demoData'
 import { buildExcel } from '../lib/exportExcel'
+import { today } from '../lib/format'
 import { emptyData, validateData } from '../lib/storage'
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm'
@@ -8,11 +9,8 @@ const primaryBtn = 'rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text
 const secondaryBtn =
   'rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50'
 
-/** Bugünün tarihi "2026-11-05" biçiminde (dosya adları için) */
-function today() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
+/** "9 varlık, 14 işlem" */
+const summarize = (d) => `${d.assets.length} varlık, ${d.transactions.length} işlem`
 
 /** Bir metni dosya olarak indirtir: geçici bir bağlantı oluşturup ona tıklar. */
 function download(content, type, filename) {
@@ -31,7 +29,6 @@ export default function Settings({ portfolio }) {
   const [message, setMessage] = useState(null) // { ok, text }
   const [exporting, setExporting] = useState(false)
 
-  const monthCount = Object.keys(data.records).length
   const hasData = data.assets.length > 0
 
   // Veriyi JSON dosyası olarak bilgisayara indirir (uygulamaya geri yüklemek için).
@@ -46,7 +43,7 @@ export default function Settings({ portfolio }) {
     try {
       const buffer = await buildExcel(data)
       download(buffer, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', `capitrack-${today()}.xlsx`)
-      setMessage({ ok: true, text: 'Excel dosyası indirildi: Aylık Tablo, Dağılım, Tüm Kayıtlar ve Varlıklar sayfaları.' })
+      setMessage({ ok: true, text: 'Excel dosyası indirildi: Varlıklar, Aylık Tablo, İşlemler, Aylık Fiyatlar ve Dağılım sayfaları.' })
     } catch {
       setMessage({ ok: false, text: 'Excel dosyası oluşturulamadı. İnternet bağlantını kontrol edip tekrar dene.' })
     } finally {
@@ -61,7 +58,7 @@ export default function Settings({ portfolio }) {
     if (!file) return
     try {
       const next = validateData(JSON.parse(await file.text()))
-      const summary = `${next.assets.length} varlık, ${Object.keys(next.records).length} aylık kayıt`
+      const summary = summarize(next)
       if (hasData && !window.confirm(`Mevcut verilerin silinip yedekteki ${summary} yüklenecek. Devam edilsin mi?`)) return
       replaceData(next)
       setMessage({ ok: true, text: `Yedek yüklendi: ${summary}.` })
@@ -73,8 +70,9 @@ export default function Settings({ portfolio }) {
 
   function handleDemo() {
     if (hasData && !window.confirm('Mevcut verilerin silinip örnek veri yüklenecek. Devam edilsin mi?')) return
-    replaceData(createDemoData())
-    setMessage({ ok: true, text: 'Örnek veri yüklendi: 5 varlık, 6 aylık geçmiş. Panel’e göz at!' })
+    const demo = createDemoData()
+    replaceData(demo)
+    setMessage({ ok: true, text: `Örnek veri yüklendi: ${summarize(demo)}, 6 aylık geçmiş. Panel’e göz at!` })
   }
 
   function handleReset() {
@@ -103,7 +101,7 @@ export default function Settings({ portfolio }) {
       <section className={card}>
         <h3 className="font-semibold">Yedekle ve geri yükle</h3>
         <p className="mt-1 text-sm text-slate-500">
-          Şu an kayıtlı: {data.assets.length} varlık, {monthCount} aylık kayıt.
+          Şu an kayıtlı: {summarize(data)}, {Object.keys(data.prices).length} aylık fiyat kaydı.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <button onClick={handleExport} disabled={!hasData} className={`${primaryBtn} disabled:opacity-40`}>
@@ -123,7 +121,8 @@ export default function Settings({ portfolio }) {
       <section className={card}>
         <h3 className="font-semibold">Örnek veri</h3>
         <p className="mt-1 text-sm text-slate-500">
-          Uygulamayı denemek için 5 varlık ve son 6 ayın değerlerinden oluşan örnek bir portföy yükle.
+          Uygulamayı denemek için 9 varlık (3 hisse, 2 fon, altın, ETF, dolar, mevduat), alış/satış işlemleri ve son 6 ayın
+          fiyatlarından oluşan örnek bir portföy yükle.
         </p>
         <button onClick={handleDemo} className={`${secondaryBtn} mt-4`}>
           Örnek veriyi yükle
