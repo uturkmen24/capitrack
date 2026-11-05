@@ -114,7 +114,7 @@ export default function Dashboard({ portfolio, goTo }) {
                   tick={{ fill: MUTED, fontSize: 12 }}
                   width={72}
                 />
-                <Tooltip content={<TotalTooltip series={series} />} cursor={{ stroke: AXIS }} />
+                <Tooltip content={<TotalTooltip series={series} />} cursor={{ stroke: AXIS }} wrapperStyle={{ zIndex: 10 }} />
                 <Line
                   type="monotone"
                   dataKey="total"

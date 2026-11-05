@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { createDemoData } from '../lib/demoData'
-import { buildCsv } from '../lib/exportCsv'
+import { buildExcel } from '../lib/exportExcel'
 import { emptyData, validateData } from '../lib/storage'
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm'
@@ -29,6 +29,7 @@ export default function Settings({ portfolio }) {
   const { data, replaceData } = portfolio
   const fileInput = useRef(null)
   const [message, setMessage] = useState(null) // { ok, text }
+  const [exporting, setExporting] = useState(false)
 
   const monthCount = Object.keys(data.records).length
   const hasData = data.assets.length > 0
@@ -39,10 +40,18 @@ export default function Settings({ portfolio }) {
     setMessage({ ok: true, text: 'Yedek dosyası indirildi.' })
   }
 
-  // Veriyi Excel'de açılabilen tablo olarak indirir (okumak / incelemek için).
-  function handleCsv() {
-    download(buildCsv(data), 'text/csv;charset=utf-8', `capitrack-veriler-${today()}.csv`)
-    setMessage({ ok: true, text: 'Tablo indirildi. Excel veya Google E-Tablolar ile açabilirsin.' })
+  // Veriyi biçimlendirilmiş bir Excel dosyası olarak indirir (okumak / incelemek için).
+  async function handleExcel() {
+    setExporting(true)
+    try {
+      const buffer = await buildExcel(data)
+      download(buffer, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', `capitrack-${today()}.xlsx`)
+      setMessage({ ok: true, text: 'Excel dosyası indirildi: Aylık Tablo, Dağılım, Tüm Kayıtlar ve Varlıklar sayfaları.' })
+    } catch {
+      setMessage({ ok: false, text: 'Excel dosyası oluşturulamadı. İnternet bağlantını kontrol edip tekrar dene.' })
+    } finally {
+      setExporting(false)
+    }
   }
 
   // Seçilen JSON dosyasını okur, kontrol eder ve mevcut verinin yerine koyar.
@@ -103,8 +112,8 @@ export default function Settings({ portfolio }) {
           <button onClick={() => fileInput.current?.click()} className={secondaryBtn}>
             Yedekten geri yükle
           </button>
-          <button onClick={handleCsv} disabled={!hasData} className={`${secondaryBtn} disabled:opacity-40`}>
-            Excel tablosu indir (CSV)
+          <button onClick={handleExcel} disabled={!hasData || exporting} className={`${secondaryBtn} disabled:opacity-40`}>
+            {exporting ? 'Hazırlanıyor…' : 'Excel dosyası indir (.xlsx)'}
           </button>
           {/* Gizli dosya seçici: "Yedekten geri yükle" butonu bunu açar */}
           <input ref={fileInput} type="file" accept=".json,application/json" onChange={handleImport} className="hidden" />

@@ -1,4 +1,5 @@
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
+import { useState } from 'react'
+import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts'
 import { getType } from '../lib/constants'
 import { formatCompactTL, formatShare, formatTL } from '../lib/format'
 import { usePref } from '../lib/prefs'
@@ -12,6 +13,8 @@ const VIEWS = [
 // İki görünümde de altta her türün adı, tutarı ve yüzdesi listelenir; kesin rakamlar oradan okunur.
 export default function TypeDistribution({ rows, subtitle, className }) {
   const [view, setView] = usePref('capitrack:typeView', 'bar')
+  // Üzerine gelinen tür. Pasta ile liste bunu paylaşır: birinde bir türe gelince diğerinde de öne çıkar.
+  const [activeKey, setActiveKey] = useState(null)
   const total = rows.reduce((s, r) => s + r.value, 0)
 
   return (
@@ -35,13 +38,25 @@ export default function TypeDistribution({ rows, subtitle, className }) {
         </div>
       </div>
 
-      <div className="mt-4">{view === 'pie' ? <Donut rows={rows} total={total} /> : <SegmentedBar rows={rows} />}</div>
+      <div className="mt-4">
+        {view === 'pie' ? (
+          <Donut rows={rows} total={total} activeKey={activeKey} onActive={setActiveKey} />
+        ) : (
+          <SegmentedBar rows={rows} />
+        )}
+      </div>
 
-      <ul className="mt-4 space-y-2">
+      <ul className="mt-4 space-y-0.5" onMouseLeave={() => setActiveKey(null)}>
         {rows.map((r) => {
           const t = getType(r.key)
           return (
-            <li key={r.key} className="flex items-center gap-3 text-sm">
+            <li
+              key={r.key}
+              onMouseEnter={() => setActiveKey(r.key)}
+              className={`-mx-2 flex items-center gap-3 rounded-md px-2 py-1 text-sm transition-colors ${
+                activeKey === r.key ? 'bg-slate-100' : ''
+              }`}
+            >
               <span className="h-3 w-3 shrink-0 rounded-sm" style={{ background: t.color }} />
               <span className="flex-1">{t.label}</span>
               <span className="tabular-nums text-slate-600">{formatTL(r.value)}</span>
@@ -73,10 +88,15 @@ function SegmentedBar({ rows }) {
   )
 }
 
-// Ortası boş pasta (halka) grafik. Ortada toplam tutar yazar; dilimin üzerine gelince ayrıntı çıkar.
-function Donut({ rows, total }) {
+// Ortası boş pasta (halka) grafik.
+// Ayrı bir ipucu kutusu açmak yerine halkanın ortası değişir: normalde toplam yazar, bir dilimin üzerine
+// gelince (telefonda dokununca) o türün adı, tutarı ve yüzdesi yazar. Böylece yazılar asla üst üste binmez.
+function Donut({ rows, total, activeKey, onActive }) {
+  const active = rows.find((r) => r.key === activeKey)
+  const t = active && getType(active.key)
+
   return (
-    <div className="relative h-52">
+    <div className="relative h-52" onMouseLeave={() => onActive(null)}>
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
@@ -90,35 +110,40 @@ function Donut({ rows, total }) {
             stroke="#ffffff"
             strokeWidth={2}
             isAnimationActive={false}
+            onMouseEnter={(_, index) => onActive(rows[index]?.key ?? null)}
+            onClick={(_, index) => onActive(rows[index]?.key ?? null)}
           >
             {rows.map((r) => (
-              <Cell key={r.key} fill={getType(r.key).color} />
+              <Cell
+                key={r.key}
+                fill={getType(r.key).color}
+                // Bir dilim seçiliyken diğerleri soluklaşır
+                fillOpacity={activeKey && activeKey !== r.key ? 0.35 : 1}
+                style={{ cursor: 'pointer', transition: 'fill-opacity 150ms' }}
+              />
             ))}
           </Pie>
-          <Tooltip content={<SliceTooltip />} />
         </PieChart>
       </ResponsiveContainer>
-      {/* Halkanın ortasındaki toplam. pointer-events-none: üzerine gelince grafiğin ipucunu engellemesin */}
-      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-xs text-slate-500">Toplam</span>
-        <span className="text-lg font-bold">{formatCompactTL(total)}</span>
-      </div>
-    </div>
-  )
-}
 
-function SliceTooltip({ active, payload }) {
-  if (!active || !payload?.length) return null
-  const r = payload[0].payload
-  const t = getType(r.key)
-  return (
-    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-lg">
-      <p className="flex items-center gap-2 text-xs text-slate-500">
-        <span className="h-2.5 w-2.5 rounded-sm" style={{ background: t.color }} />
-        {t.label}
-      </p>
-      <p className="font-semibold tabular-nums">{formatTL(r.value)}</p>
-      <p className="text-xs tabular-nums text-slate-600">{formatShare(r.share)}</p>
+      {/* Halkanın ortası. pointer-events-none: fare bu yazının değil, alttaki grafiğin üzerinde sayılsın */}
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+        {active ? (
+          <>
+            <span className="flex items-center gap-1.5 text-xs text-slate-500">
+              <span className="h-2.5 w-2.5 rounded-sm" style={{ background: t.color }} />
+              {t.label}
+            </span>
+            <span className="text-lg font-bold tabular-nums">{formatTL(active.value)}</span>
+            <span className="text-xs font-medium tabular-nums text-slate-600">{formatShare(active.share)}</span>
+          </>
+        ) : (
+          <>
+            <span className="text-xs text-slate-500">Toplam</span>
+            <span className="text-lg font-bold">{formatCompactTL(total)}</span>
+          </>
+        )}
+      </div>
     </div>
   )
 }
