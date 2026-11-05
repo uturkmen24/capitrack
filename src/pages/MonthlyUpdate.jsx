@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import TypeBadge from '../components/TypeBadge'
 import {
+  amountsHidden,
   amountToInput,
   currentMonth,
   formatMonth,
@@ -143,7 +144,9 @@ function MonthForm({ month, data, onSave }) {
               )}
 
               <input
-                className={`${inputClass} ${bad ? 'border-red-400 ring-2 ring-red-400/20' : ''}`}
+                className={`${inputClass} ${bad ? 'border-red-400 ring-2 ring-red-400/20' : ''} ${
+                  amountsHidden() ? 'blur-sm focus:blur-none' : ''
+                }`}
                 value={inputs[a.id] ?? ''}
                 onChange={(e) => {
                   setInputs({ ...inputs, [a.id]: e.target.value })

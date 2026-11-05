@@ -5,16 +5,61 @@ const tl = new Intl.NumberFormat('tr-TR', {
   currency: 'TRY',
   maximumFractionDigits: 0,
 })
+const usd = new Intl.NumberFormat('tr-TR', {
+  style: 'currency',
+  currency: 'USD',
+  maximumFractionDigits: 0,
+})
+const compactTL = new Intl.NumberFormat('tr-TR', {
+  style: 'currency',
+  currency: 'TRY',
+  notation: 'compact',
+  maximumFractionDigits: 1,
+})
+
+// --- Gizlilik modu ---
+// Açıkken bütün tutar fonksiyonları rakam yerine yıldız döndürür. Tutarlar uygulamanın her yerinde
+// bu fonksiyonlarla yazıldığı için tek bir anahtar hepsini birden gizler.
+// Anahtarı App.jsx yönetir: göz ikonuna basılınca setAmountsHidden çağrılır ve ekran yeniden çizilir.
+let hidden = false
+export function setAmountsHidden(value) {
+  hidden = value
+}
+export function amountsHidden() {
+  return hidden
+}
+const MASK = '***,**'
 
 /** 45000 -> "₺45.000" */
 export function formatTL(n) {
-  return tl.format(n)
+  return hidden ? `₺${MASK}` : tl.format(n)
+}
+
+/** 900 -> "$900" */
+export function formatUSD(n) {
+  return hidden ? `$${MASK}` : usd.format(n)
+}
+
+/** 1250000 -> "₺1,3 Mn" (grafik eksenleri için kısa biçim) */
+export function formatCompactTL(n) {
+  return hidden ? '₺***' : compactTL.format(n)
 }
 
 /** 5000 -> "+₺5.000", -5000 -> "−₺5.000" (değişimleri göstermek için) */
 export function formatSignedTL(n) {
+  if (hidden) return `₺${MASK}`
   const sign = n > 0 ? '+' : n < 0 ? '−' : ''
   return sign + tl.format(Math.abs(n))
+}
+
+/** "2026-11-05" -> "5 Kasım 2026" */
+export function formatDate(iso) {
+  return new Date(`${iso}T00:00:00`).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+/** 50.047 -> "50,05" */
+export function formatRate(n) {
+  return n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 /** Bugünün ayı, "2026-11" biçiminde. Aylık kayıtların anahtarı budur. */

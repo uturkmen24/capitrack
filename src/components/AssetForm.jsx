@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import SuggestInput from './SuggestInput'
 import { ASSET_TYPES } from '../lib/constants'
-import { amountToInput, currentMonth, formatMonth, parseAmount } from '../lib/format'
+import { amountsHidden, amountToInput, currentMonth, formatMonth, parseAmount } from '../lib/format'
 
 const inputClass =
   'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20'
@@ -67,7 +67,7 @@ export default function AssetForm({ asset, currentValue, institutions, onSave, o
             {formatMonth(currentMonth())} değeri (₺)
           </span>
           <input
-            className={inputClass}
+            className={`${inputClass} ${amountsHidden() ? 'blur-sm focus:blur-none' : ''}`}
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder="ör. 45.000"

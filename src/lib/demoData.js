@@ -31,5 +31,6 @@ export function createDemoData() {
   })
 
   const createdAt = new Date().toISOString()
-  return { version: 1, assets: ASSETS.map((a) => ({ ...a, createdAt })), records }
+  const goal = { name: 'Ev peşinatı', target: 1000000, monthly: 5000, annualReturn: 0.1 }
+  return { version: 1, assets: ASSETS.map((a) => ({ ...a, createdAt })), records, goal }
 }

@@ -1,8 +1,18 @@
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { getType } from '../lib/constants'
+import GoalCard from '../components/GoalCard'
+import TotalTile from '../components/TotalTile'
+import TypeDistribution from '../components/TypeDistribution'
 import { breakdown, timeline } from '../lib/analytics'
 import { createDemoData } from '../lib/demoData'
-import { formatMonth, formatMonthShort, formatPercent, formatShare, formatSignedTL, formatTL } from '../lib/format'
+import {
+  formatCompactTL,
+  formatMonth,
+  formatMonthShort,
+  formatPercent,
+  formatShare,
+  formatSignedTL,
+  formatTL,
+} from '../lib/format'
 
 // Grafiklerin ortak "çerçeve" renkleri: ızgara, eksen, eksen yazıları. Veri öne çıksın diye soluk.
 const GRID = '#e1e0d9'
@@ -10,18 +20,11 @@ const AXIS = '#c3c2b7'
 const MUTED = '#898781'
 const LINE = '#059669' // CapiTrack yeşili
 
-const compactTL = new Intl.NumberFormat('tr-TR', {
-  style: 'currency',
-  currency: 'TRY',
-  notation: 'compact',
-  maximumFractionDigits: 1,
-})
-
 const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm'
 
-// "Panel" ekranı: toplam varlık, zaman içindeki değişim ve dağılımlar.
+// "Panel" ekranı: toplam varlık, hedef, zaman içindeki değişim ve dağılımlar.
 export default function Dashboard({ portfolio, goTo }) {
-  const { data } = portfolio
+  const { data, setGoal } = portfolio
   const series = timeline(data)
 
   if (data.assets.length === 0 || series.length === 0) {
@@ -64,11 +67,7 @@ export default function Dashboard({ portfolio, goTo }) {
     <div className="space-y-4">
       {/* Üst özet kartları */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <div className={`${card} sm:col-span-1`}>
-          <p className="text-sm text-slate-500">Toplam varlık</p>
-          <p className="mt-1 text-4xl font-bold tracking-tight">{formatTL(last.total)}</p>
-          <p className="mt-1 text-xs text-slate-500">Son güncelleme: {formatMonth(last.month)}</p>
-        </div>
+        <TotalTile total={last.total} month={last.month} className={card} />
         <ChangeTile
           title="Geçen aya göre"
           from={prev?.total}
@@ -82,6 +81,9 @@ export default function Dashboard({ portfolio, goTo }) {
           note={series.length > 1 ? `${formatMonth(first.month)}’dan bu yana` : 'En az 2 aylık veri gerekiyor'}
         />
       </div>
+
+      {/* Hedef */}
+      <GoalCard goal={data.goal} current={last.total} onSave={setGoal} />
 
       {/* Zaman içinde toplam değer */}
       <section className={card}>
@@ -106,7 +108,7 @@ export default function Dashboard({ portfolio, goTo }) {
                 />
                 <YAxis
                   domain={['auto', 'auto']}
-                  tickFormatter={(v) => compactTL.format(v)}
+                  tickFormatter={(v) => formatCompactTL(v)}
                   tickLine={false}
                   axisLine={false}
                   tick={{ fill: MUTED, fontSize: 12 }}
@@ -130,11 +132,7 @@ export default function Dashboard({ portfolio, goTo }) {
 
       {/* Dağılımlar */}
       <div className="grid gap-4 md:grid-cols-2">
-        <section className={card}>
-          <h3 className="font-semibold">Türe göre dağılım</h3>
-          <p className="mb-4 text-sm text-slate-500">{formatMonth(last.month)}</p>
-          <TypeSplit rows={byType} />
-        </section>
+        <TypeDistribution rows={byType} subtitle={formatMonth(last.month)} className={card} />
 
         <section className={card}>
           <h3 className="font-semibold">Kuruma göre dağılım</h3>
@@ -188,41 +186,6 @@ function TotalTooltip({ active, payload, series }) {
           {before.total > 0 && ` (${formatPercent(diff / before.total)})`}
         </p>
       )}
-    </div>
-  )
-}
-
-// Türe göre dağılım: üstte tek bir bölümlü çubuk (bütünün nasıl bölündüğü),
-// altında her türün adı, tutarı ve yüzdesi (kesin rakamlar).
-function TypeSplit({ rows }) {
-  return (
-    <div>
-      <div className="flex h-3 gap-[2px] overflow-hidden rounded-full" role="img" aria-label="Türe göre dağılım çubuğu">
-        {rows.map((r) => {
-          const t = getType(r.key)
-          return (
-            <div
-              key={r.key}
-              style={{ width: `${r.share * 100}%`, background: t.color }}
-              title={`${t.label}: ${formatTL(r.value)} (${formatShare(r.share)})`}
-              className="min-w-[3px] transition-opacity hover:opacity-80"
-            />
-          )
-        })}
-      </div>
-      <ul className="mt-4 space-y-2">
-        {rows.map((r) => {
-          const t = getType(r.key)
-          return (
-            <li key={r.key} className="flex items-center gap-3 text-sm">
-              <span className="h-3 w-3 shrink-0 rounded-sm" style={{ background: t.color }} />
-              <span className="flex-1">{t.label}</span>
-              <span className="tabular-nums text-slate-600">{formatTL(r.value)}</span>
-              <span className="w-14 text-right font-medium tabular-nums">{formatShare(r.share)}</span>
-            </li>
-          )
-        })}
-      </ul>
     </div>
   )
 }

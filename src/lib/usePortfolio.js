@@ -96,10 +96,15 @@ export function usePortfolio() {
     })
   }
 
+  /** Hedefi kaydeder; null verilirse hedefi kaldırır. */
+  function setGoal(goal) {
+    setData((d) => ({ ...d, goal }))
+  }
+
   /** Tüm veriyi değiştirir (yedekten geri yükleme, örnek veri, sıfırlama). */
   function replaceData(next) {
     setData(next)
   }
 
-  return { data, addAsset, updateAsset, deleteAsset, saveMonth, replaceData }
+  return { data, addAsset, updateAsset, deleteAsset, saveMonth, setGoal, replaceData }
 }

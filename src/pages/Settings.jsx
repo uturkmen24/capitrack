@@ -1,11 +1,28 @@
 import { useRef, useState } from 'react'
 import { createDemoData } from '../lib/demoData'
+import { buildCsv } from '../lib/exportCsv'
 import { emptyData, validateData } from '../lib/storage'
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm'
 const primaryBtn = 'rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700'
 const secondaryBtn =
   'rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50'
+
+/** Bugünün tarihi "2026-11-05" biçiminde (dosya adları için) */
+function today() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/** Bir metni dosya olarak indirtir: geçici bir bağlantı oluşturup ona tıklar. */
+function download(content, type, filename) {
+  const url = URL.createObjectURL(new Blob([content], { type }))
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
 
 // "Ayarlar" ekranı: yedek alma, yedekten geri yükleme, örnek veri ve sıfırlama.
 export default function Settings({ portfolio }) {
@@ -16,19 +33,16 @@ export default function Settings({ portfolio }) {
   const monthCount = Object.keys(data.records).length
   const hasData = data.assets.length > 0
 
-  // Veriyi JSON dosyası olarak bilgisayara indirir.
+  // Veriyi JSON dosyası olarak bilgisayara indirir (uygulamaya geri yüklemek için).
   function handleExport() {
-    const json = JSON.stringify(data, null, 2)
-    const blob = new Blob([json], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const d = new Date()
-    const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `capitrack-yedek-${date}.json`
-    a.click()
-    URL.revokeObjectURL(url)
+    download(JSON.stringify(data, null, 2), 'application/json', `capitrack-yedek-${today()}.json`)
     setMessage({ ok: true, text: 'Yedek dosyası indirildi.' })
+  }
+
+  // Veriyi Excel'de açılabilen tablo olarak indirir (okumak / incelemek için).
+  function handleCsv() {
+    download(buildCsv(data), 'text/csv;charset=utf-8', `capitrack-veriler-${today()}.csv`)
+    setMessage({ ok: true, text: 'Tablo indirildi. Excel veya Google E-Tablolar ile açabilirsin.' })
   }
 
   // Seçilen JSON dosyasını okur, kontrol eder ve mevcut verinin yerine koyar.
@@ -88,6 +102,9 @@ export default function Settings({ portfolio }) {
           </button>
           <button onClick={() => fileInput.current?.click()} className={secondaryBtn}>
             Yedekten geri yükle
+          </button>
+          <button onClick={handleCsv} disabled={!hasData} className={`${secondaryBtn} disabled:opacity-40`}>
+            Excel tablosu indir (CSV)
           </button>
           {/* Gizli dosya seçici: "Yedekten geri yükle" butonu bunu açar */}
           <input ref={fileInput} type="file" accept=".json,application/json" onChange={handleImport} className="hidden" />

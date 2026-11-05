@@ -8,11 +8,23 @@ const KEY = 'capitrack:data'
  * {
  *   version: 1,
  *   assets:  [{ id, name, type, institution, note, createdAt }],
- *   records: { "2026-11": { "<varlık id>": { value: 45000 } } }
+ *   records: { "2026-11": { "<varlık id>": { value: 45000 } } },
+ *   goal:    { name, target, monthly, annualReturn } | null
  * }
  */
 export function emptyData() {
-  return { version: 1, assets: [], records: {} }
+  return { version: 1, assets: [], records: {}, goal: null }
+}
+
+/** Hedef nesnesini kontrol eder; geçersizse null döner. */
+function validateGoal(g) {
+  if (!g || typeof g !== 'object' || !(g.target > 0)) return null
+  return {
+    name: typeof g.name === 'string' ? g.name : '',
+    target: g.target,
+    monthly: Number.isFinite(g.monthly) && g.monthly >= 0 ? g.monthly : 0,
+    annualReturn: Number.isFinite(g.annualReturn) ? g.annualReturn : 0,
+  }
 }
 
 export function loadData() {
@@ -56,7 +68,7 @@ export function validateData(input) {
     }
     if (Object.keys(clean).length > 0) records[month] = clean
   }
-  return { version: 1, assets, records }
+  return { version: 1, assets, records, goal: validateGoal(input.goal) }
 }
 
 export function saveData(data) {
