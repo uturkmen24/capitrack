@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react'
 import { loadData, saveData } from './storage'
 import { currentMonth } from './format'
+import { createDemoData } from './demoData'
 
 function newId() {
   return globalThis.crypto?.randomUUID?.() ?? Date.now().toString(36) + Math.random().toString(36).slice(2)
@@ -35,7 +36,12 @@ export function latestValue(records, assetId, before) {
 
 export function usePortfolio() {
   // Sayfa açılınca veri LocalStorage'dan bir kez okunur.
-  const [data, setData] = useState(loadData)
+  // Adres "?demo" ile açılırsa ve kayıtlı veri yoksa örnek veriyle başlar (paylaşılabilir demo linki).
+  const [data, setData] = useState(() => {
+    const saved = loadData()
+    const wantsDemo = new URLSearchParams(window.location.search).has('demo')
+    return wantsDemo && saved.assets.length === 0 ? createDemoData() : saved
+  })
 
   // Veri her değiştiğinde kaydet.
   useEffect(() => {

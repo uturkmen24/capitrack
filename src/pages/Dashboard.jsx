@@ -2,7 +2,7 @@ import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YA
 import { getType } from '../lib/constants'
 import { breakdown, timeline } from '../lib/analytics'
 import { createDemoData } from '../lib/demoData'
-import { formatMonth, formatMonthShort, formatPercent, formatSignedTL, formatTL } from '../lib/format'
+import { formatMonth, formatMonthShort, formatPercent, formatShare, formatSignedTL, formatTL } from '../lib/format'
 
 // Grafiklerin ortak "çerçeve" renkleri: ızgara, eksen, eksen yazıları. Veri öne çıksın diye soluk.
 const GRID = '#e1e0d9'
@@ -94,7 +94,7 @@ export default function Dashboard({ portfolio, goTo }) {
         ) : (
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={series} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
+              <LineChart data={series} margin={{ top: 8, right: 28, bottom: 0, left: 0 }}>
                 <CartesianGrid vertical={false} stroke={GRID} />
                 <XAxis
                   dataKey="month"
@@ -118,6 +118,7 @@ export default function Dashboard({ portfolio, goTo }) {
                   dataKey="total"
                   stroke={LINE}
                   strokeWidth={2}
+                  isAnimationActive={false}
                   dot={series.length <= 12 ? { r: 4, fill: LINE, stroke: '#fff', strokeWidth: 2 } : false}
                   activeDot={{ r: 6, fill: LINE, stroke: '#fff', strokeWidth: 2 }}
                 />
@@ -203,7 +204,7 @@ function TypeSplit({ rows }) {
             <div
               key={r.key}
               style={{ width: `${r.share * 100}%`, background: t.color }}
-              title={`${t.label}: ${formatTL(r.value)} (%${(r.share * 100).toFixed(1)})`}
+              title={`${t.label}: ${formatTL(r.value)} (${formatShare(r.share)})`}
               className="min-w-[3px] transition-opacity hover:opacity-80"
             />
           )
@@ -217,7 +218,7 @@ function TypeSplit({ rows }) {
               <span className="h-3 w-3 shrink-0 rounded-sm" style={{ background: t.color }} />
               <span className="flex-1">{t.label}</span>
               <span className="tabular-nums text-slate-600">{formatTL(r.value)}</span>
-              <span className="w-14 text-right font-medium tabular-nums">%{(r.share * 100).toFixed(1)}</span>
+              <span className="w-14 text-right font-medium tabular-nums">{formatShare(r.share)}</span>
             </li>
           )
         })}
@@ -232,11 +233,11 @@ function RankedBars({ rows }) {
   return (
     <ul className="space-y-3">
       {rows.map((r) => (
-        <li key={r.key} title={`${r.key}: ${formatTL(r.value)} (%${(r.share * 100).toFixed(1)})`}>
+        <li key={r.key} title={`${r.key}: ${formatTL(r.value)} (${formatShare(r.share)})`}>
           <div className="mb-1 flex items-baseline justify-between gap-3 text-sm">
             <span className="truncate">{r.key}</span>
             <span className="shrink-0 tabular-nums text-slate-600">
-              {formatTL(r.value)} <span className="font-medium text-slate-800">· %{(r.share * 100).toFixed(1)}</span>
+              {formatTL(r.value)} <span className="font-medium text-slate-800">· {formatShare(r.share)}</span>
             </span>
           </div>
           <div className="h-2 rounded-full bg-slate-100">

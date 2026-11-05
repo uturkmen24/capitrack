@@ -43,6 +43,11 @@ export function formatPercent(ratio) {
   return `${sign}%${Math.abs(ratio * 100).toLocaleString('tr-TR', { maximumFractionDigits: 1 })}`
 }
 
+/** 0.338 -> "%33,8" (pay / oran, işaretsiz) */
+export function formatShare(ratio) {
+  return `%${(ratio * 100).toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`
+}
+
 /** "2026-11" -> "Kasım 2026" */
 export function formatMonth(key) {
   const [y, m] = key.split('-').map(Number)
