@@ -2,13 +2,20 @@
 
 **Tüm yatırımların, tek yerde.**
 
-İnsanların birikimleri çoğu zaman farklı bankalara ve aracı kurumlara dağılmış durumdadır: bir bankada altın hesabı, diğerinde hisse senetleri, bir başkasında vadeli mevduat… CapiTrack, bu yatırımların hepsini tek bir panelde toplar. Kullanıcı her ay varlıklarının güncel değerini girer; uygulama toplam varlığı, zaman içindeki değişimi ve varlıkların türlere ve kurumlara göre dağılımını grafiklerle gösterir.
+İnsanların birikimleri çoğu zaman farklı bankalara ve aracı kurumlara dağılmış durumdadır: bir bankada altın hesabı, diğerinde hisse senetleri, bir başkasında vadeli mevduat… CapiTrack, bu yatırımların hepsini tek bir panelde toplar. Kullanıcı alış ve satışlarını kaydeder, her ay da birim fiyatları günceller; uygulama toplam varlığı, ağırlıklı ortalama maliyete göre gerçek kâr/zararı, zaman içindeki değişimi ve varlıkların türlere ve kurumlara göre dağılımını grafiklerle gösterir.
 
 🔗 **Canlı site:** https://uturkmen24.github.io/capitrack/
 
 🧪 **Örnek veriyle dene:** https://uturkmen24.github.io/capitrack/?demo
 
 ![CapiTrack paneli](docs/panel.png)
+
+<details>
+<summary>Varlıklarım: türe göre gruplu liste</summary>
+
+![CapiTrack varlıklarım](docs/varliklar.png)
+
+</details>
 
 <details>
 <summary>Telefon görünümü</summary>
@@ -19,16 +26,24 @@
 
 ## Özellikler
 
-- **Panel:** toplam varlık, geçen aya göre ve başlangıçtan beri değişim (₺ ve %), aylara göre toplam değer çizgi grafiği, türe göre ve kuruma göre dağılım.
+- **Panel:** toplam varlık; *bu ayki getiri* (para ekleyip çıkarmanın etkisi ayıklanmış hâliyle); toplam *kâr / zarar* (değer − maliyet, ayrıca satışlardan gerçekleşen kâr). Grafiklerde aylara göre toplam değer ile yatırılan maliyet aynı çizgi grafikte gösterilir; türe göre ve kuruma göre dağılım da panelde yer alır.
 - **Çubuk / Pasta görünümü:** türe göre dağılım, bölümlü çubuk veya halka (pasta) grafik olarak gösterilebilir. Pastada bir dilimin ya da listedeki bir türün üzerine gelince halkanın ortasında o türün tutarı ve payı görünür.
 - **TL / Dolar:** toplam varlığa tıklayınca TL ile dolar arasında geçiş yapılır. Kur, ücretsiz bir servisten (Avrupa Merkez Bankası referans kuru) alınır ve 6 saat önbellekte tutulur; internet yoksa en son alınan kur kullanılır.
 - **Gizlilik modu:** üst menüdeki göz ikonu, kafe veya kütüphane gibi ortak alanlarda tüm tutarları tek tıkla `₺***,**` olarak gizler. Değer giriş kutuları bulanıklaşır, kutuya tıklayınca netleşir. Tercih hatırlanır.
 - **Hedef:** bir birikim hedefi (ör. ev peşinatı) belirlenir; portföyün hedefe oranı ilerleme çubuğuyla gösterilir. Aylık ekleme ve beklenen yıllık reel getiriyle, bileşik getiri hesabı yapılarak hedefe kaç ay sonra ulaşılacağı tahmin edilir.
-- **Varlıklarım:** varlık ekleme, düzenleme ve silme. Her varlığın türü (Altın, Hisse, ETF, Yatırım Fonu, Döviz, Mevduat, Kripto, Diğer), kurumu ve notu tutulur.
-- **Aylık Güncelleme:** bir ay seçilir ve tüm varlıkların o ayki değeri tek ekranda girilir. Alanlar önceki ayın değerleriyle hazır gelir; önceki aya göre değişim yazarken anlık hesaplanır.
-- **Son bilinen değer kuralı:** bir ay için değeri girilmeyen varlık, en son girilen değeriyle sayılır. Elden çıkarılan varlık için 0 yazılır; varlık toplamdan ve dağılımlardan düşer.
+- **Varlıklarım:** varlık ekleme, düzenleme ve silme. Her varlığın türü (Altın, Hisse, ETF, Yatırım Fonu, Döviz, Mevduat, Kripto, Diğer), kurumu ve notu tutulur. Varlık eklenirken ilk alış da aynı formda girilebilir.
+- **Türe göre gruplama:** aynı türdeki varlıklar (ör. THYAO, BIMAS, ASELS → *Hisse*) tek bir başlık altında listelenir. Grup başlığında toplam değer ve grubun kâr/zarar yüzdesi yazar; her varlığın kendi kâr/zararı da satırında görünür. Gruplar açılıp kapatılabilir ve bu tercih hatırlanır. Gruplama hem *Varlıklarım* hem *Aylık Güncelleme* ekranında vardır.
+- **Alış / satış işlemleri:** her varlık için tarih, adet ve birim fiyatla alış veya satış kaydedilir. Mevduat gibi tutarla takip edilen varlıklarda bunun yerine *Yatır / Çek* kullanılır. Elde olandan fazla satış yapılamaz. Satış formu, kaydetmeden önce tahmini gerçekleşen kâr/zararı gösterir. Her varlığın işlem geçmişi listelenir ve yanlış girilen işlem silinebilir.
+- **Ağırlıklı ortalama maliyet:** kâr/zarar, bankaların kullandığı ağırlıklı ortalama maliyet yöntemiyle hesaplanır (ayrıntısı aşağıda). Yeni alış yapmak kâr, satış yapmak zarar gibi görünmez.
+- **Aylık Güncelleme:** bir ay seçilir ve tüm varlıkların o ayki **birim fiyatı** (gram fiyatı, hisse fiyatı, kur…) tek ekranda girilir. Değer `adet × fiyat` olarak anlık hesaplanır. Mevduatta doğrudan bakiye yazılır. Alanlar son bilinen fiyatla hazır gelir. Ay toplamı ve para girişi/çıkışı ayıklanmış aylık getiri, formun altında görünür.
+- **Son bilinen fiyat kuralı:** bir ay için fiyatı girilmeyen varlık, en son bilinen fiyatıyla (yoksa son işlem fiyatıyla) değerlenir. Tamamı satılan varlık toplamdan ve dağılımlardan düşer.
 - **Ayarlar:** verinin JSON dosyası olarak yedeklenmesi, yedekten doğrulamalı geri yükleme, örnek veri yükleme ve tüm verileri silme.
-- **Excel'e aktarma:** veriler biçimlendirilmiş bir `.xlsx` dosyası olarak indirilir. Dosyada dört sayfa bulunur: *Aylık Tablo* (varlık × ay, formüllü toplam satırı), *Dağılım* (son ayın türe ve kuruma göre payları), *Tüm Kayıtlar* (filtrelenebilir liste) ve *Varlıklar*.
+- **Excel'e aktarma:** veriler biçimlendirilmiş bir `.xlsx` dosyası olarak indirilir. Dosyada beş sayfa bulunur:
+  - *Varlıklar:* türe göre gruplu; miktar, ortalama maliyet, son fiyat, değer, kâr/zarar ve gerçekleşen kâr/zarar. Her türün formüllü ara toplamı ve genel toplamı vardır.
+  - *Aylık Tablo:* varlık × ay değerleri, formüllü toplam satırıyla.
+  - *İşlemler:* tüm alış/satışların filtrelenebilir listesi.
+  - *Aylık Fiyatlar:* girilen birim fiyatlar.
+  - *Dağılım:* son ayın türe ve kuruma göre payları.
 - **Türkçe sayı girişi:** `45.000`, `45000,50` veya `1.250.000 ₺` yazımlarının hepsi doğru okunur.
 - Telefon ve masaüstü uyumlu arayüz.
 
@@ -81,19 +96,25 @@ src/
 │   ├── TotalTile.jsx       Toplam varlık kartı (TL / Dolar geçişi)
 │   ├── GoalCard.jsx        Hedef kartı ve hedef formu
 │   ├── TypeDistribution.jsx Türe göre dağılım (çubuk / pasta)
-│   ├── AssetForm.jsx       Varlık ekleme / düzenleme formu
+│   ├── AssetGroup.jsx      Açılıp kapanan tür grubu (toplam değer ve kâr/zarar)
+│   ├── AssetForm.jsx       Varlık ekleme / düzenleme formu (isteğe bağlı ilk alışla)
+│   ├── TransactionForm.jsx Alış / satış (mevduatta yatır / çek) formu
+│   ├── TransactionList.jsx Bir varlığın işlem geçmişi
+│   ├── TradeFields.jsx     Tarih, adet ve fiyat alanları
+│   ├── ProfitLoss.jsx      ▲ / ▼ işaretli kâr/zarar yazısı
 │   ├── SuggestInput.jsx    Öneri listeli metin kutusu (kurum alanı)
 │   └── TypeBadge.jsx       Renkli tür rozeti
 └── lib/
     ├── usePortfolio.js     Tüm verinin tutulduğu ve değiştirildiği yer
-    ├── storage.js          LocalStorage okuma/yazma ve yedek doğrulama
-    ├── analytics.js        Aylık toplamlar ve dağılım hesapları
+    ├── storage.js          LocalStorage okuma/yazma, yedek doğrulama, eski sürüm verisinin yedeklenmesi
+    ├── analytics.js        Ağırlıklı ortalama maliyet motoru, aylık toplamlar, dağılım, işlem kontrolü
+    ├── trade.js            Alış / satış formunun okunması ve kontrolü
     ├── goal.js             Bileşik getiri ve hedefe ulaşma süresi hesabı
     ├── fx.js               Dolar/TL kurunun alınması ve önbelleklenmesi
     ├── exportExcel.js      Excel dosyasının oluşturulması
     ├── prefs.js            Tercihlerin hatırlanması (gizlilik, para birimi, görünüm)
     ├── format.js           Para, yüzde, tarih biçimleri, gizlilik maskesi, Türkçe sayı okuma
-    ├── constants.js        Yatırım türleri ve renkleri
+    ├── constants.js        Yatırım türleri, renkleri, birimleri ve gruplama
     └── demoData.js         Örnek portföy
 ```
 
@@ -103,23 +124,46 @@ Tüm veri tarayıcıda `capitrack:data` anahtarı altında tek bir JSON nesnesi 
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "assets": [
-    { "id": "…", "name": "Gram Altın", "type": "altin", "institution": "Ziraat Bankası", "note": "25 gram" }
+    { "id": "a1", "name": "THYAO", "type": "hisse", "institution": "Garanti BBVA", "note": "" }
   ],
-  "records": {
-    "2026-10": { "<varlık id>": { "value": 83500 } },
-    "2026-11": { "<varlık id>": { "value": 86000 } }
+  "transactions": [
+    { "id": "t1", "assetId": "a1", "date": "2026-06-10", "kind": "buy", "quantity": 200, "price": 280 },
+    { "id": "t2", "assetId": "a1", "date": "2026-08-14", "kind": "buy", "quantity": 50, "price": 296 }
+  ],
+  "prices": {
+    "2026-10": { "a1": 305.5 },
+    "2026-11": { "a1": 312.25 }
   },
   "goal": { "name": "Ev peşinatı", "target": 1000000, "monthly": 5000, "annualReturn": 0.1 }
 }
 ```
 
 - **assets:** kullanıcının sahip olduğu yatırımlar.
-- **records:** her ay için her varlığın o ayki toplam değeri (₺). Ay anahtarı `YYYY-AA` biçimindedir.
+- **transactions:** alış (`buy`) ve satış (`sell`) işlemleri. Mevduat ve *Diğer* gibi tutarla takip edilen varlıklarda `quantity` yatırılan/çekilen tutardır, `price` 1'dir.
+- **prices:** her ay için her varlığın ay sonu birim fiyatı (mevduatta o ayın bakiyesi). Ay anahtarı `YYYY-AA` biçimindedir.
 - **goal:** birikim hedefi (tutar, aylık ekleme, yıllık reel getiri oranı) ya da hedef yoksa `null`.
 
-Gizlilik modu, para birimi ve grafik görünümü gibi tercihler portföy verisinden ayrı anahtarlarda (`capitrack:privacy` vb.) tutulur ve yedeğe dahil edilmez.
+Miktar, maliyet ve değer veride saklanmaz; her açılışta işlemlerden ve fiyatlardan yeniden hesaplanır. Böylece bir işlem silindiğinde ya da düzeltildiğinde tüm geçmiş kendiliğinden doğru kalır.
+
+Gizlilik modu, para birimi, grafik görünümü ve kapalı gruplar gibi tercihler portföy verisinden ayrı anahtarlarda (`capitrack:privacy` vb.) tutulur ve yedeğe dahil edilmez.
+
+> **Sürüm geçişi:** İlk sürüm (`version: 1`) her ay için sadece toplam değer tutuyordu; bu bilgiden adet ve maliyet çıkarılamadığı için eski veri yeni modele çevrilmez. Uygulama eski veriyi `capitrack:data:v1-yedek` anahtarına yedekleyip boş başlar.
+
+### Ağırlıklı ortalama maliyet
+
+Her varlık için işlemler tarih sırasıyla işlenir:
+
+| İşlem | Miktar | Toplam maliyet | Ortalama maliyet | Gerçekleşen K/Z |
+|---|---|---|---|---|
+| **Alış** `q` adet, `p` fiyattan | `+ q` | `+ q·p` | yeniden hesaplanır: maliyet ÷ miktar | değişmez |
+| **Satış** `q` adet, `p` fiyattan | `− q` | `− q·ort` | **değişmez** | `+ (p − ort)·q` |
+
+- **Değer** = miktar × son bilinen fiyat, **kâr/zarar** = değer − kalan maliyet.
+- **Örnek:** 200 THYAO ₺280'den, sonra 50 adet ₺296'dan alınırsa ortalama maliyet `(56.000 + 14.800) / 250 = ₺283,20` olur. 50 adet ₺320'den satılırsa gerçekleşen kâr `(320 − 283,20) × 50 = +₺1.840` olur, kalan 200 adetin ortalama maliyeti ₺283,20 olarak kalır.
+- **Tutarla takip edilen varlıklarda** (mevduat): yatırılan para maliyete eklenir. Para çekilince maliyet, çekilen tutarın bakiyeye oranında azalır.
+- **Aylık getiri** = (bu ayın değeri − geçen ayın değeri) − o ayki net para girişi. Böylece ay içinde yeni alış yapmak getiri gibi, satış yapmak da kayıp gibi görünmez.
 
 ### Hedef hesabı
 
@@ -143,7 +187,7 @@ Proje, VS Code içinde **Claude Code** eklentisiyle (model: Claude Opus 5.5) gel
 | **Planlama** | Claude'a proje yönergesi ve fikir verilerek bir yol haritası istendi. Teknoloji seçimi (React + Vite, Tailwind, Recharts) ve aşamalar birlikte planlandı. |
 | **Kurulum** | Claude, Vite projesini oluşturdu, Tailwind ve Recharts'ı kurdu, Git deposunu başlattı ve GitHub Pages için otomatik yayın iş akışını yazdı. |
 | **Geliştirme** | Bileşenler aşama aşama üretildi: varlık yönetimi → aylık güncelleme → panel ve grafikler → yedekleme ve örnek veri. "Son bilinen değer" kuralı ve dağılım için bölümlü çubuk kullanımı gibi tasarım kararları gerekçeleriyle önerildi ve onaylandı. Grafik renkleri renk körlüğü testinden geçirildi. |
-| **Yeni özellikler** | Temel uygulama bittikten sonra proje sahibinin istediği özellikler eklendi: çubuk / pasta görünüm seçici, TL / Dolar geçişi, gizlilik modu, Excel'e aktarma ve bileşik getirili hedef hesabı. Kur servisleri önceden test edilip tarayıcıdan erişime izin verdikleri doğrulandı. Hedef formülü, hedefe ulaşılan ay ile bir önceki ayın birikimi karşılaştırılarak kontrol edildi. |
-| **Hata ayıklama** | Klasör adındaki `;` yüzünden `vite` komutunun bulunamaması teşhis edilip çözüldü. Kullanıcının bildirdiği "kurum öneri listesinin yanlış yerde açılması" hatası, tarayıcının `<datalist>` özelliğinin Windows ekran ölçeklendirmesindeki sorununa bağlanıp kendi bileşenle değiştirildi. Zaman aşımına uğrayan GitHub Pages yayını, action sürümleri güncellenerek düzeltildi. Ekran görüntüleri incelenerek animasyon, yüzde biçimi ve eksen etiketi sorunları bulundu ve giderildi. Kullanıcının bildirdiği "pasta grafikte yazıların üst üste binmesi" sorunu, ipucu kutusu yerine halkanın ortasında bilgi gösterilerek; "grafiğe tıklayınca çıkan çerçeve" sorunu ise fare tıklamasında odak çerçevesi gizlenip klavye odağında korunarak çözüldü. |
-| **Doğrulama** | Üretilen kod her aşamada derlendi ve linter'dan geçirildi. Sayı okuma, aylık toplam, yedek doğrulama ve hedef hesabı fonksiyonları örnek verilerle test edildi. Arayüz, otomatik kontrol edilen bir tarayıcıda (Edge + Puppeteer) butonlara tıklanarak denendi; indirilen Excel dosyası hücre hücre okunup kontrol edildi. Proje sahibi her aşamayı tarayıcıda elle test etti. |
+| **Yeni özellikler** | Temel uygulama bittikten sonra proje sahibinin istediği özellikler eklendi: çubuk / pasta görünüm seçici, TL / Dolar geçişi, gizlilik modu, Excel'e aktarma ve bileşik getirili hedef hesabı. Kur servisleri önceden test edilip tarayıcıdan erişime izin verdikleri doğrulandı. Hedef formülü, hedefe ulaşılan ay ile bir önceki ayın birikimi karşılaştırılarak kontrol edildi. Ardından aynı türdeki varlıkların gruplanması ve ağırlıklı ortalama maliyet sistemine geçildi. Bu değişiklikte veri modeli "aylık toplam değer"den "işlemler + aylık birim fiyat"a çevrildi. Eski veriyi dönüştürmek ile sıfırdan başlamak arasındaki seçim ve aylık girişin birim fiyatla mı toplam değerle mi yapılacağı, artıları ve eksileriyle proje sahibine soruldu; kararları proje sahibi verdi. |
+| **Hata ayıklama** | Klasör adındaki `;` yüzünden `vite` komutunun bulunamaması teşhis edilip çözüldü. Kullanıcının bildirdiği "kurum öneri listesinin yanlış yerde açılması" hatası, tarayıcının `<datalist>` özelliğinin Windows ekran ölçeklendirmesindeki sorununa bağlanıp kendi bileşenle değiştirildi. Zaman aşımına uğrayan GitHub Pages yayını, action sürümleri güncellenerek düzeltildi. Ekran görüntüleri incelenerek animasyon, yüzde biçimi ve eksen etiketi sorunları bulundu ve giderildi. Kullanıcının bildirdiği "pasta grafikte yazıların üst üste binmesi" sorunu, ipucu kutusu yerine halkanın ortasında bilgi gösterilerek; "grafiğe tıklayınca çıkan çerçeve" sorunu ise fare tıklamasında odak çerçevesi gizlenip klavye odağında korunarak çözüldü. Telefonda Aylık Güncelleme satırlarında uzun varlık adının giriş kutusuyla üst üste binmesi, satır esnek ızgaraya çevrilerek giderildi. |
+| **Doğrulama** | Üretilen kod her aşamada derlendi ve linter'dan geçirildi. Sayı okuma, aylık toplam, yedek doğrulama ve hedef hesabı fonksiyonları örnek verilerle test edildi. Ortalama maliyet ve gerçekleşen kâr hesapları elle hesaplanan örneklerle (ör. THYAO ₺283,20 / +₺1.840) karşılaştırıldı. Fazla satışın engellenmesi ve eski sürüm verisinin yedeklenmesi de otomatik tarayıcı testine eklendi. Arayüz, otomatik kontrol edilen bir tarayıcıda (Edge + Puppeteer) butonlara tıklanarak denendi; indirilen Excel dosyası hücre hücre okunup kontrol edildi. Proje sahibi her aşamayı tarayıcıda elle test etti. |
 | **Dokümantasyon** | Bu README ve ekran görüntüleri Claude tarafından hazırlandı. |
