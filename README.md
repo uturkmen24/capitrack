@@ -5,6 +5,7 @@
 İnsanların birikimleri çoğu zaman farklı bankalara ve aracı kurumlara dağılmış durumdadır: bir bankada altın hesabı, diğerinde hisse senetleri, bir başkasında vadeli mevduat… CapiTrack, bu yatırımların hepsini tek bir panelde toplar. Kullanıcı her ay varlıklarının güncel değerini girer; uygulama toplam varlığı, zaman içindeki değişimi ve varlıkların türlere ve kurumlara göre dağılımını grafiklerle gösterir.
 
 🔗 **Canlı site:** https://uturkmen24.github.io/capitrack/
+
 🧪 **Örnek veriyle dene:** https://uturkmen24.github.io/capitrack/?demo
 
 ![CapiTrack paneli](docs/panel.png)
@@ -111,22 +112,9 @@ Proje, VS Code içinde **Claude Code** eklentisiyle (model: Claude Opus 5.5) gel
 | Aşama | Yapay zeka nasıl kullanıldı |
 |---|---|
 | **Fikir** | Gemini ile proje fikirleri tartışıldı. "Yatırım ve portföy takipçisi" fikri seçildi ve kişisel ihtiyaca göre şekillendirildi. |
-| **Planlama** | Claude'a proje yönergesi ve fikir verilerek bir yol haritası istendi. Teknoloji seçimi (React + Vite, Tailwind, Recharts), LocalStorage'ın ne olduğu ve neden metin dosyası yerine kullanıldığı, veri modeli, ekranlar ve aşamalar birlikte planlandı. |
+| **Planlama** | Claude'a proje yönergesi ve fikir verilerek bir yol haritası istendi. Teknoloji seçimi (React + Vite, Tailwind, Recharts) ve aşamalar birlikte planlandı. |
 | **Kurulum** | Claude, Vite projesini oluşturdu, Tailwind ve Recharts'ı kurdu, Git deposunu başlattı ve GitHub Pages için otomatik yayın iş akışını yazdı. |
 | **Geliştirme** | Bileşenler aşama aşama üretildi: varlık yönetimi → aylık güncelleme → panel ve grafikler → yedekleme ve örnek veri. "Son bilinen değer" kuralı ve pasta grafik yerine bölümlü çubuk kullanımı gibi tasarım kararları gerekçeleriyle önerildi ve onaylandı. Grafik renkleri renk körlüğü testinden geçirildi. |
 | **Hata ayıklama** | Klasör adındaki `;` yüzünden `vite` komutunun bulunamaması teşhis edilip çözüldü. Kullanıcının bildirdiği "kurum öneri listesinin yanlış yerde açılması" hatası, tarayıcının `<datalist>` özelliğinin Windows ekran ölçeklendirmesindeki sorununa bağlanıp kendi bileşenle değiştirildi. Zaman aşımına uğrayan GitHub Pages yayını, action sürümleri güncellenerek düzeltildi. Ekran görüntüleri incelenerek animasyon, yüzde biçimi ve eksen etiketi sorunları bulundu ve giderildi. |
 | **Doğrulama** | Üretilen kod her aşamada derlendi ve linter'dan geçirildi. Sayı okuma, aylık toplam ve yedek doğrulama fonksiyonları örnek verilerle test edildi. Proje sahibi her aşamayı tarayıcıda elle test etti. |
 | **Dokümantasyon** | Bu README ve ekran görüntüleri Claude tarafından hazırlandı. |
-
-Kullanılan istemlerden örnekler:
-
-- *"Bir yatırım yönetim sitesi yapmak istiyorum. İnsanlar birden farklı bankalarda onlarca çeşit yatırıma sahipler… Toplam parasını görsün, grafiklerle artışı görsün, yatırım dağılımını görsün. Basit başlayalım, önce bir plan yap."*
-- *"Kurum/banka kısmında yazdıktan sonra öneri listesi textbox'un altında değil, solda bozuk bir şekilde çıkıyor."*
-- *"4-5 tane varsayılan veri yükleyelim; her aşamada sıfırdan değer giriyorum."*
-
-## Yol haritası
-
-- [ ] Alış maliyeti ve kâr/zarar takibi
-- [ ] Döviz cinsinden varlıklar
-- [ ] Karanlık mod
-- [ ] Birden fazla profil
