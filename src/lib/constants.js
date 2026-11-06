@@ -29,6 +29,19 @@ export function groupByType(items, typeOf = (x) => x.type) {
   )
 }
 
+/**
+ * Ekranlar için gruplama: aynı türden en az 2 varlık varsa grup olur ve en üstte gösterilir.
+ * Türünde tek olan varlıklar gruplanmaz, alttaki düz listede (tür sırasıyla) kalır.
+ * Ör. 3 hisse + 1 altın → { groups: [Hisse(3)], singles: [altın] }. İkinci altın eklenince Altın da grup olur.
+ */
+export function splitByType(items, typeOf = (x) => x.type) {
+  const all = groupByType(items, typeOf)
+  return {
+    groups: all.filter((g) => g.items.length > 1),
+    singles: all.filter((g) => g.items.length === 1).map((g) => g.items[0]),
+  }
+}
+
 /** Varlık tutarla mı (mevduat gibi) takip ediliyor? Değilse adet × fiyat ile takip edilir. */
 export function isAmountMode(asset) {
   return getType(asset.type).mode === 'amount'

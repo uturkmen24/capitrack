@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import AssetGroup from '../components/AssetGroup'
+import AssetGroup, { SingleList } from '../components/AssetGroup'
 import ProfitLoss from '../components/ProfitLoss'
+import TypeBadge from '../components/TypeBadge'
 import { assetStateAt, isHeld } from '../lib/analytics'
-import { getType, groupByType } from '../lib/constants'
+import { getType, splitByType } from '../lib/constants'
 import {
   amountsHidden,
   amountToInput,
@@ -139,6 +140,24 @@ function MonthForm({ month, data, onSave }) {
   const toggle = (typeId) =>
     setCollapsed(collapsed.includes(typeId) ? collapsed.filter((x) => x !== typeId) : [...collapsed, typeId])
 
+  // Aynı türden birden fazla varlık varsa grup (üstte), türünde tek olanlar düz liste (altta)
+  const { groups, singles } = splitByType(rows, (r) => r.asset.type)
+
+  const renderRow = (r, showType) => (
+    <MonthRow
+      key={r.asset.id}
+      row={r}
+      showType={showType}
+      input={inputs[r.asset.id] ?? ''}
+      parsedValue={parsed[r.asset.id]}
+      value={liveValue(r)}
+      onChange={(v) => {
+        setInputs({ ...inputs, [r.asset.id]: v })
+        setMessage(null)
+      }}
+    />
+  )
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {!hasSavedPrices && (
@@ -147,7 +166,7 @@ function MonthForm({ month, data, onSave }) {
         </p>
       )}
 
-      {groupByType(rows, (r) => r.asset.type).map(({ type, items }) => (
+      {groups.map(({ type, items }) => (
         <AssetGroup
           key={type.id}
           type={type}
@@ -157,21 +176,11 @@ function MonthForm({ month, data, onSave }) {
           collapsed={collapsed.includes(type.id)}
           onToggle={() => toggle(type.id)}
         >
-          {items.map((r) => (
-            <MonthRow
-              key={r.asset.id}
-              row={r}
-              input={inputs[r.asset.id] ?? ''}
-              parsedValue={parsed[r.asset.id]}
-              value={liveValue(r)}
-              onChange={(v) => {
-                setInputs({ ...inputs, [r.asset.id]: v })
-                setMessage(null)
-              }}
-            />
-          ))}
+          {items.map((r) => renderRow(r, false))}
         </AssetGroup>
       ))}
+
+      {singles.length > 0 && <SingleList>{singles.map((r) => renderRow(r, true))}</SingleList>}
 
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
         <div>
@@ -200,7 +209,7 @@ function MonthForm({ month, data, onSave }) {
 }
 
 // Tek bir varlığın aylık satırı: "250 adet × [312,00] = ₺78.000" veya "Bakiye [139.200]"
-function MonthRow({ row, input, parsedValue, value, onChange }) {
+function MonthRow({ row, showType, input, parsedValue, value, onChange }) {
   const { asset, type, state, prev } = row
   const amountMode = type.mode === 'amount'
   const bad = Number.isNaN(parsedValue)
@@ -214,7 +223,10 @@ function MonthRow({ row, input, parsedValue, value, onChange }) {
   return (
     <div className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-2 px-5 py-3 sm:grid-cols-[1fr_auto_auto]">
       <div className="order-1 min-w-0">
-        <p className="truncate font-medium">{asset.name}</p>
+        <p className="flex min-w-0 items-center gap-2 font-medium">
+          <span className="truncate">{asset.name}</span>
+          {showType && <TypeBadge type={asset.type} />}
+        </p>
         <p className="truncate text-xs text-slate-500">
           {asset.institution || '—'}
           {priceChange !== null && Math.abs(priceChange) > 0.0005 && (

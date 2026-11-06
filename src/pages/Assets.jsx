@@ -1,17 +1,18 @@
 import { useState } from 'react'
 import AssetForm from '../components/AssetForm'
-import AssetGroup from '../components/AssetGroup'
+import AssetGroup, { SingleList } from '../components/AssetGroup'
 import ProfitLoss from '../components/ProfitLoss'
 import TransactionForm from '../components/TransactionForm'
 import TransactionList from '../components/TransactionList'
+import TypeBadge from '../components/TypeBadge'
 import { assetStateAt, checkTransactions } from '../lib/analytics'
-import { getType, groupByType } from '../lib/constants'
+import { getType, splitByType } from '../lib/constants'
 import { currentMonth, formatPrice, formatQty, formatSignedTL, formatTL } from '../lib/format'
 import { usePref } from '../lib/prefs'
 
 const btn = 'rounded-lg px-3 py-1.5 text-sm hover:bg-slate-100'
 
-// "Varlıklarım" ekranı: varlıklar türe göre gruplanır; her varlığın adedi, ortalama maliyeti,
+// "Varlıklarım" ekranı: aynı türden birden fazla varlık türe göre gruplanır, tekler altta listelenir; her varlığın adedi, ortalama maliyeti,
 // değeri ve kâr/zararı görünür. Al / Sat, işlem geçmişi, düzenleme ve silme buradan yapılır.
 export default function Assets({ portfolio }) {
   const { data, addAsset, updateAsset, deleteAsset, addTransaction, deleteTransaction } = portfolio
@@ -25,6 +26,9 @@ export default function Assets({ portfolio }) {
   const rows = data.assets.map((asset) => ({ asset, state: assetStateAt(data, asset, month) }))
   const total = rows.reduce((s, r) => s + (r.state?.value ?? 0), 0)
   const totalCost = rows.reduce((s, r) => s + (r.state?.cost ?? 0), 0)
+
+  // Aynı türden birden fazla varlık varsa grup (üstte), türünde tek olanlar düz liste (altta)
+  const { groups, singles } = splitByType(rows, (r) => r.asset.type)
 
   const toggle = (typeId) =>
     setCollapsed(collapsed.includes(typeId) ? collapsed.filter((x) => x !== typeId) : [...collapsed, typeId])
@@ -89,13 +93,13 @@ export default function Assets({ portfolio }) {
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
           <p className="font-medium">Henüz varlık eklemedin</p>
           <p className="mt-1 text-sm text-slate-500">
-            Her hisseyi, fonu veya hesabı ayrı ayrı ekle (ör. THYAO, BIMAS). Aynı türdekiler otomatik olarak bir başlık altında
-            toplanır.
+            Her hisseyi, fonu veya hesabı ayrı ayrı ekle (ör. THYAO, BIMAS). Aynı türden birden fazla varlık olunca otomatik
+            olarak bir başlık altında toplanır.
           </p>
         </div>
       )}
 
-      {groupByType(rows, (r) => r.asset.type).map(({ type, items }) => {
+      {groups.map(({ type, items }) => {
         const value = items.reduce((s, r) => s + (r.state?.value ?? 0), 0)
         const cost = items.reduce((s, r) => s + (r.state?.cost ?? 0), 0)
         const sorted = [...items].sort((x, y) => (y.state?.value ?? 0) - (x.state?.value ?? 0))
@@ -109,53 +113,57 @@ export default function Assets({ portfolio }) {
             collapsed={collapsed.includes(type.id)}
             onToggle={() => toggle(type.id)}
           >
-            {sorted.map(({ asset, state }) => (
-              <div key={asset.id}>
-                <AssetRow
-                  asset={asset}
-                  state={state}
-                  txCount={data.transactions.filter((t) => t.assetId === asset.id).length}
-                  onPanel={(kind) => togglePanel(asset.id, kind)}
-                  activePanel={panel?.id === asset.id ? panel.kind : null}
-                  onDelete={() => handleDelete(asset)}
-                />
-                {panel?.id === asset.id && panel.kind === 'trade' && (
-                  <TransactionForm
-                    asset={asset}
-                    state={state}
-                    onSubmit={(tx) => handleTrade(asset, tx)}
-                    onCancel={() => setPanel(null)}
-                  />
-                )}
-                {panel?.id === asset.id && panel.kind === 'history' && (
-                  <TransactionList asset={asset} transactions={data.transactions} onDelete={(tx) => handleDeleteTx(asset, tx)} />
-                )}
-                {panel?.id === asset.id && panel.kind === 'edit' && (
-                  <div className="bg-slate-50 p-4">
-                    <AssetForm
-                      key={asset.id}
-                      asset={asset}
-                      lockedMode={data.transactions.some((t) => t.assetId === asset.id) ? getType(asset.type).mode : null}
-                      institutions={institutions}
-                      onSave={(fields) => {
-                        updateAsset(asset.id, fields)
-                        setPanel(null)
-                      }}
-                      onCancel={() => setPanel(null)}
-                    />
-                  </div>
-                )}
-              </div>
-            ))}
+            {sorted.map((r) => renderItem(r, false))}
           </AssetGroup>
         )
       })}
+
+      {singles.length > 0 && <SingleList>{singles.map((r) => renderItem(r, true))}</SingleList>}
     </div>
   )
+
+  // Bir varlığın satırı ve altında açılan paneli (Al / Sat, İşlemler, Düzenle).
+  // showType: grupsuz listede türü belli olsun diye adın yanına tür rozeti konur.
+  function renderItem({ asset, state }, showType) {
+    return (
+      <div key={asset.id}>
+        <AssetRow
+          asset={asset}
+          state={state}
+          showType={showType}
+          txCount={data.transactions.filter((t) => t.assetId === asset.id).length}
+          onPanel={(kind) => togglePanel(asset.id, kind)}
+          activePanel={panel?.id === asset.id ? panel.kind : null}
+          onDelete={() => handleDelete(asset)}
+        />
+        {panel?.id === asset.id && panel.kind === 'trade' && (
+          <TransactionForm asset={asset} state={state} onSubmit={(tx) => handleTrade(asset, tx)} onCancel={() => setPanel(null)} />
+        )}
+        {panel?.id === asset.id && panel.kind === 'history' && (
+          <TransactionList asset={asset} transactions={data.transactions} onDelete={(tx) => handleDeleteTx(asset, tx)} />
+        )}
+        {panel?.id === asset.id && panel.kind === 'edit' && (
+          <div className="bg-slate-50 p-4">
+            <AssetForm
+              key={asset.id}
+              asset={asset}
+              lockedMode={data.transactions.some((t) => t.assetId === asset.id) ? getType(asset.type).mode : null}
+              institutions={institutions}
+              onSave={(fields) => {
+                updateAsset(asset.id, fields)
+                setPanel(null)
+              }}
+              onCancel={() => setPanel(null)}
+            />
+          </div>
+        )}
+      </div>
+    )
+  }
 }
 
-// Grup içindeki tek bir varlık satırı
-function AssetRow({ asset, state, txCount, onPanel, activePanel, onDelete }) {
+// Tek bir varlık satırı
+function AssetRow({ asset, state, showType, txCount, onPanel, activePanel, onDelete }) {
   const type = getType(asset.type)
   const amountMode = type.mode === 'amount'
   const soldOut = state && state.value === 0 && state.cost === 0 && txCount > 0
@@ -174,7 +182,10 @@ function AssetRow({ asset, state, txCount, onPanel, activePanel, onDelete }) {
     <div className="px-5 py-3">
       <div className="flex flex-wrap items-start gap-x-4 gap-y-1">
         <div className="min-w-0 flex-1">
-          <p className="font-medium">{asset.name}</p>
+          <p className="flex flex-wrap items-center gap-2 font-medium">
+            {asset.name}
+            {showType && <TypeBadge type={asset.type} />}
+          </p>
           <p className="truncate text-xs text-slate-500">{[asset.institution, asset.note].filter(Boolean).join(' · ') || '—'}</p>
         </div>
         <div className="text-right">

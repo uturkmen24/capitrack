@@ -27,3 +27,12 @@ export default function AssetGroup({ type, count, value, cost, collapsed, onTogg
     </section>
   )
 }
+
+// Türünde tek olan varlıkların başlıksız kutusu (gruplardan sonra gelir)
+export function SingleList({ children }) {
+  return (
+    <section className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      {children}
+    </section>
+  )
+}
