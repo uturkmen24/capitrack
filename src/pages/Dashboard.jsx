@@ -1,4 +1,5 @@
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import BenchmarkCards from '../components/BenchmarkCards'
 import GoalCard from '../components/GoalCard'
 import TotalTile from '../components/TotalTile'
 import TypeDistribution from '../components/TypeDistribution'
@@ -92,6 +93,9 @@ export default function Dashboard({ portfolio, goTo }) {
           ]}
         />
       </div>
+
+      {/* Benchmark & fırsat maliyeti: enflasyona ve mevduata göre karşılaştırma */}
+      <BenchmarkCards transactions={data.transactions} value={last.total} cardClass={card} />
 
       {/* Hedef */}
       <GoalCard goal={data.goal} current={last.total} onSave={setGoal} />

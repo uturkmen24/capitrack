@@ -98,10 +98,11 @@ export function formatMonthShort(key) {
   return `${label} ${String(y).slice(2)}`
 }
 
-/** 0.0512 -> "+%5,1" */
-export function formatPercent(ratio) {
+/** 0.0512 -> "+%5,1". digits verilirse ondalık sabitlenir: formatPercent(0.28, 1) -> "+%28,0" */
+export function formatPercent(ratio, digits) {
   const sign = ratio > 0 ? '+' : ratio < 0 ? '−' : ''
-  return `${sign}%${Math.abs(ratio * 100).toLocaleString('tr-TR', { maximumFractionDigits: 1 })}`
+  const opts = digits == null ? { maximumFractionDigits: 1 } : { minimumFractionDigits: digits, maximumFractionDigits: digits }
+  return `${sign}%${Math.abs(ratio * 100).toLocaleString('tr-TR', opts)}`
 }
 
 /** 0.338 -> "%33,8" (pay / oran, işaretsiz) */
