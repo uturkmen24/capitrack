@@ -18,6 +18,13 @@
 </details>
 
 <details>
+<summary>Kademeli portföy dengeleme planı</summary>
+
+![CapiTrack dengeleme planı](docs/dengeleme.png)
+
+</details>
+
+<details>
 <summary>Telefon görünümü</summary>
 
 <img src="docs/mobil.png" alt="CapiTrack telefon görünümü" width="320" />
@@ -32,6 +39,12 @@
 - **Çubuk / Pasta görünümü:** türe göre dağılım, bölümlü çubuk veya halka (pasta) grafik olarak gösterilebilir. Pastada bir dilimin ya da listedeki bir türün üzerine gelince halkanın ortasında o türün tutarı ve payı görünür.
 - **TL / Dolar:** toplam varlığa tıklayınca TL ile dolar arasında geçiş yapılır. Kur, ücretsiz bir servisten (Avrupa Merkez Bankası referans kuru) alınır ve 6 saat önbellekte tutulur; internet yoksa en son alınan kur kullanılır.
 - **Gizlilik modu:** üst menüdeki göz ikonu, kafe veya kütüphane gibi ortak alanlarda tüm tutarları tek tıkla `₺***,**` olarak gizler. Değer giriş kutuları bulanıklaşır, kutuya tıklayınca netleşir. Tercih hatırlanır.
+- **Kademeli portföy dengeleme:** Panel'de açılır bir karttır. Kullanıcı türler (Altın, Hisse…) ya da tek tek varlıklar (THYAO, PPF…) için hedef yüzdeler girer.
+  - Form bugünkü paylarla dolu gelir; listeye henüz sahip olunmayan bir varlık da eklenebilir.
+  - Toplam %100 değilse kırmızı uyarı çıkar ve *Hesapla* pasif kalır.
+  - Adım sayısı (2, 3, 4, 6, 12) ve sıklık (haftalık / aylık) seçilir.
+  - Sonuçta *Satılacaklar* ve *Alınacaklar* özetlenir, tarihli bir yol haritası çıkar: "Adım 1 (1. Hafta): ₺12.400 Altın al (~2,7 gr)". Birim fiyatı bilinen varlıklarda yaklaşık adet/gram karşılığı da yazar.
+  - Her adım uygulandıkça işaretlenir; plan ve ilerleme tarayıcıda saklanır.
 - **Hedef:** bir birikim hedefi (ör. ev peşinatı) belirlenir; portföyün hedefe oranı ilerleme çubuğuyla gösterilir. Aylık ekleme ve beklenen yıllık reel getiriyle, bileşik getiri hesabı yapılarak hedefe kaç ay sonra ulaşılacağı tahmin edilir.
 - **Varlıklarım:** varlık ekleme, düzenleme ve silme. Her varlığın türü (Altın, Hisse, ETF, Yatırım Fonu, Döviz, Mevduat, Kripto, Diğer), kurumu ve notu tutulur. Varlık eklenirken ilk alış da aynı formda girilebilir.
 - **Türe göre gruplama:** aynı türden birden fazla varlık varsa (ör. THYAO, BIMAS, ASELS → *Hisse*) bunlar tek bir başlık altında, listenin en üstünde gösterilir. Grup başlığında toplam değer ve grubun kâr/zarar yüzdesi yazar; her varlığın kendi kâr/zararı da satırında görünür. Gruplar açılıp kapatılabilir ve bu tercih hatırlanır. Türünde tek olan varlıklar gruplanmaz; altta, adlarının yanında renkli tür etiketiyle listelenir. Aynı türden ikinci bir varlık eklenince (ör. gram altının yanına altın sertifikası) o tür kendiliğinden gruba dönüşür. Gruplama hem *Varlıklarım* hem *Aylık Güncelleme* ekranında vardır.
@@ -97,6 +110,7 @@ src/
 ├── components/
 │   ├── TotalTile.jsx       Toplam varlık kartı (TL / Dolar geçişi)
 │   ├── BenchmarkCards.jsx  Reel getiri ve "sadece mevduat olsaydı" kartları
+│   ├── RebalancePlanner.jsx Kademeli portföy dengeleme: hedef formu ve adım adım plan
 │   ├── GoalCard.jsx        Hedef kartı ve hedef formu
 │   ├── TypeDistribution.jsx Türe göre dağılım (çubuk / pasta)
 │   ├── AssetGroup.jsx      Açılıp kapanan tür grubu (toplam değer ve kâr/zarar)
@@ -114,6 +128,7 @@ src/
     ├── trade.js            Alış / satış formunun okunması ve kontrolü
     ├── goal.js             Bileşik getiri ve hedefe ulaşma süresi hesabı
     ├── benchmark.js        Para akışlarının enflasyon / mevduat faiziyle büyütülmesi, Fisher denklemi
+    ├── rebalance.js        Hedef yüzdelere göre alım-satım tutarları, adımlara bölme, adım tarihleri
     ├── fx.js               Dolar/TL kurunun alınması ve önbelleklenmesi
     ├── exportExcel.js      Excel dosyasının oluşturulması
     ├── prefs.js            Tercihlerin hatırlanması (gizlilik, para birimi, görünüm, enflasyon ve faiz oranı)
@@ -151,7 +166,7 @@ Tüm veri tarayıcıda `capitrack:data` anahtarı altında tek bir JSON nesnesi 
 
 Miktar, maliyet ve değer veride saklanmaz; her açılışta işlemlerden ve fiyatlardan yeniden hesaplanır. Böylece bir işlem silindiğinde ya da düzeltildiğinde tüm geçmiş kendiliğinden doğru kalır.
 
-Gizlilik modu, para birimi, grafik görünümü, kapalı gruplar, enflasyon ve mevduat faizi oranı gibi tercihler portföy verisinden ayrı anahtarlarda (`capitrack:privacy` vb.) tutulur ve yedeğe dahil edilmez.
+Gizlilik modu, para birimi, grafik görünümü, kapalı gruplar, enflasyon ve mevduat faizi oranı, dengeleme planı ve işaretlenen adımlar gibi tercihler portföy verisinden ayrı anahtarlarda (`capitrack:privacy` vb.) tutulur ve yedeğe dahil edilmez.
 
 > **Sürüm geçişi:** İlk sürüm (`version: 1`) her ay için sadece toplam değer tutuyordu; bu bilgiden adet ve maliyet çıkarılamadığı için eski veri yeni modele çevrilmez. Uygulama eski veriyi `capitrack:data:v1-yedek` anahtarına yedekleyip boş başlar.
 
@@ -192,6 +207,20 @@ Büyütülmüş tutar = Σ Tutar · (1 + oran)^(gün / 365)
 
 Girilen faiz yıllık bileşik oran olarak kabul edilir. Bankaların ilan ettiği oran genelde basit faizdir ve stopaj kesilir; daha adil bir karşılaştırma için net oran yazılmalıdır.
 
+### Kademeli dengeleme hesabı
+
+```
+Hedef = Toplam portföy × Hedef yüzde / 100
+Delta = Hedef − Bugünkü değer          (Delta < 0 → satılacak, Delta > 0 → alınacak)
+Adım  = |Delta| / N                    (her adımda aynı tutar)
+```
+
+- Hedef yüzdeler toplamı %100 olduğu için satılanların toplamı alınanlarınkine eşittir; plan dışarıdan para gerektirmez. Her adımda önce satışlar, sonra alışlar yazılır.
+- Form bugünkü paylarla doldurulurken paylar %0,1'e yuvarlanır. Toplamın tam %100 olması için yuvarlama artığı, küsuratı en büyük olanlara dağıtılır (en büyük kalan yöntemi).
+- Portföyün binde birinden küçük farklar işlem sayılmaz. Bu, dokunulmayan satırlardaki yuvarlama gürültüsünü (ör. "₺40 ETF sat") eler. Elenen farklar alış ve satış toplamını birkaç yüz lira saptırabileceği için büyük taraf küçük tarafa eşitlenir; plan her zaman nakit-nötr kalır.
+- Adet/gram karşılığı = adım tutarı ÷ son birim fiyat. Türe göre kırılımda yalnızca türde tek varlık varsa gösterilir (birden fazla hissenin ortak bir fiyatı yoktur).
+- Plan, oluşturulduğu günün değerleriyle sabittir. Fiyatlar değiştikçe hedefe tam oturmayabilir; plan istenirse yeniden hesaplanır.
+
 Veri sadece kullanıldığı tarayıcıda durur. Başka bir cihaza taşımak veya kaybetmemek için **Ayarlar → Yedeği indir** kullanılır.
 
 ## Yapay zekanın kullanımı
@@ -204,7 +233,7 @@ Proje, VS Code içinde **Claude Code** eklentisiyle (model: Claude Opus 5.5) gel
 | **Planlama** | Claude'a proje yönergesi ve fikir verilerek bir yol haritası istendi. Teknoloji seçimi (React + Vite, Tailwind, Recharts) ve aşamalar birlikte planlandı. |
 | **Kurulum** | Claude, Vite projesini oluşturdu, Tailwind ve Recharts'ı kurdu, Git deposunu başlattı ve GitHub Pages için otomatik yayın iş akışını yazdı. |
 | **Geliştirme** | Bileşenler aşama aşama üretildi: varlık yönetimi → aylık güncelleme → panel ve grafikler → yedekleme ve örnek veri. "Son bilinen değer" kuralı ve dağılım için bölümlü çubuk kullanımı gibi tasarım kararları gerekçeleriyle önerildi ve onaylandı. Grafik renkleri renk körlüğü testinden geçirildi. |
-| **Yeni özellikler** | Temel uygulama bittikten sonra proje sahibinin istediği özellikler eklendi: çubuk / pasta görünüm seçici, TL / Dolar geçişi, gizlilik modu, Excel'e aktarma ve bileşik getirili hedef hesabı. Kur servisleri önceden test edilip tarayıcıdan erişime izin verdikleri doğrulandı. Hedef formülü, hedefe ulaşılan ay ile bir önceki ayın birikimi karşılaştırılarak kontrol edildi. Ardından aynı türdeki varlıkların gruplanması ve ağırlıklı ortalama maliyet sistemine geçildi. Bu değişiklikte veri modeli "aylık toplam değer"den "işlemler + aylık birim fiyat"a çevrildi. Eski veriyi dönüştürmek ile sıfırdan başlamak arasındaki seçim ve aylık girişin birim fiyatla mı toplam değerle mi yapılacağı, artıları ve eksileriyle proje sahibine soruldu; kararları proje sahibi verdi. Proje sahibinin hazırladığı ayrıntılı istekle "Benchmark & Fırsat Maliyeti" kartları eklendi. Claude, istekteki Fisher formülünde portföyün toplam getirisi ile yıllık enflasyonun farklı dönemlere ait olduğunu fark etti; enflasyonu da para akışlarının tarihlerine göre dönemleştirerek düzeltti. Satışların mevduattan para çekmek gibi düşülmesini de ekledi. Canlı fiyat çekme fikri için ücretsiz fiyat kaynakları tek tek denendi: döviz, kripto ve altın kaynakları tarayıcıdan erişime izin veriyor; BIST hisseleri ve TEFAS fonları ise CORS engeline takılıyor. Bu analiz proje sahibine sunuldu. |
+| **Yeni özellikler** | Temel uygulama bittikten sonra proje sahibinin istediği özellikler eklendi: çubuk / pasta görünüm seçici, TL / Dolar geçişi, gizlilik modu, Excel'e aktarma ve bileşik getirili hedef hesabı. Kur servisleri önceden test edilip tarayıcıdan erişime izin verdikleri doğrulandı. Hedef formülü, hedefe ulaşılan ay ile bir önceki ayın birikimi karşılaştırılarak kontrol edildi. Ardından aynı türdeki varlıkların gruplanması ve ağırlıklı ortalama maliyet sistemine geçildi. Bu değişiklikte veri modeli "aylık toplam değer"den "işlemler + aylık birim fiyat"a çevrildi. Eski veriyi dönüştürmek ile sıfırdan başlamak arasındaki seçim ve aylık girişin birim fiyatla mı toplam değerle mi yapılacağı, artıları ve eksileriyle proje sahibine soruldu; kararları proje sahibi verdi. Proje sahibinin hazırladığı ayrıntılı istekle "Benchmark & Fırsat Maliyeti" kartları eklendi. Claude, istekteki Fisher formülünde portföyün toplam getirisi ile yıllık enflasyonun farklı dönemlere ait olduğunu fark etti; enflasyonu da para akışlarının tarihlerine göre dönemleştirerek düzeltti. Satışların mevduattan para çekmek gibi düşülmesini de ekledi. Canlı fiyat çekme fikri için ücretsiz fiyat kaynakları tek tek denendi: döviz, kripto ve altın kaynakları tarayıcıdan erişime izin veriyor; BIST hisseleri ve TEFAS fonları ise CORS engeline takılıyor. Bu analiz proje sahibine sunuldu. Yine proje sahibinin ayrıntılı isteğiyle "Kademeli Portföy Dengeleme" modülü eklendi. Claude, isteğe birkaç ekleme önerip uyguladı: formun bugünkü paylarla dolu gelmesi (unutulan bir kalemin yanlışlıkla %0 olup tamamen satılmaması için), türe göre / varlığa göre kırılım seçimi ve mevduatta "al/sat" yerine "yatır/çek" yazılması. |
 | **Hata ayıklama** | Klasör adındaki `;` yüzünden `vite` komutunun bulunamaması teşhis edilip çözüldü. Kullanıcının bildirdiği "kurum öneri listesinin yanlış yerde açılması" hatası, tarayıcının `<datalist>` özelliğinin Windows ekran ölçeklendirmesindeki sorununa bağlanıp kendi bileşenle değiştirildi. Zaman aşımına uğrayan GitHub Pages yayını, action sürümleri güncellenerek düzeltildi. Ekran görüntüleri incelenerek animasyon, yüzde biçimi ve eksen etiketi sorunları bulundu ve giderildi. Kullanıcının bildirdiği "pasta grafikte yazıların üst üste binmesi" sorunu, ipucu kutusu yerine halkanın ortasında bilgi gösterilerek; "grafiğe tıklayınca çıkan çerçeve" sorunu ise fare tıklamasında odak çerçevesi gizlenip klavye odağında korunarak çözüldü. Telefonda Aylık Güncelleme satırlarında uzun varlık adının giriş kutusuyla üst üste binmesi, satır esnek ızgaraya çevrilerek giderildi. |
-| **Doğrulama** | Üretilen kod her aşamada derlendi ve linter'dan geçirildi. Sayı okuma, aylık toplam, yedek doğrulama ve hedef hesabı fonksiyonları örnek verilerle test edildi. Ortalama maliyet ve gerçekleşen kâr hesapları elle hesaplanan örneklerle (ör. THYAO ₺283,20 / +₺1.840) karşılaştırıldı. Fazla satışın engellenmesi ve eski sürüm verisinin yedeklenmesi de otomatik tarayıcı testine eklendi. Reel getiri ve mevduat hesapları elle sağlanabilen örneklerle test edildi (ör. 1 yıl önce ₺100, bugün ₺150, %40 enflasyon → reel +%7,14; %45 faiz → mevduat ₺145). İki oran eşit girildiğinde iki kartın aynı tutarı verdiği de doğrulandı. Arayüz, otomatik kontrol edilen bir tarayıcıda (Edge + Puppeteer) butonlara tıklanarak denendi; indirilen Excel dosyası hücre hücre okunup kontrol edildi. Proje sahibi her aşamayı tarayıcıda elle test etti. |
+| **Doğrulama** | Üretilen kod her aşamada derlendi ve linter'dan geçirildi. Sayı okuma, aylık toplam, yedek doğrulama ve hedef hesabı fonksiyonları örnek verilerle test edildi. Ortalama maliyet ve gerçekleşen kâr hesapları elle hesaplanan örneklerle (ör. THYAO ₺283,20 / +₺1.840) karşılaştırıldı. Fazla satışın engellenmesi ve eski sürüm verisinin yedeklenmesi de otomatik tarayıcı testine eklendi. Reel getiri ve mevduat hesapları elle sağlanabilen örneklerle test edildi (ör. 1 yıl önce ₺100, bugün ₺150, %40 enflasyon → reel +%7,14; %45 faiz → mevduat ₺145). İki oran eşit girildiğinde iki kartın aynı tutarı verdiği de doğrulandı. Dengeleme motoru, istekteki örnekle (₺100.000 portföy, %40 PPF / %25 Altın / %25 SPY / %10 BIST) ve tarih hesaplarıyla (yıl geçişi, ay sonu) test edildi. Tarayıcı testinde çıktı elle toplanırken, yuvarlama artıkları yüzünden satış ve alış toplamlarının ₺252 farklı çıktığı fark edildi; nakit dengesi kuralı eklenerek düzeltildi. Arayüz, otomatik kontrol edilen bir tarayıcıda (Edge + Puppeteer) butonlara tıklanarak denendi; indirilen Excel dosyası hücre hücre okunup kontrol edildi. Proje sahibi her aşamayı tarayıcıda elle test etti. |
 | **Dokümantasyon** | Bu README ve ekran görüntüleri Claude tarafından hazırlandı. |
