@@ -3,6 +3,7 @@
 
 import { assetStateAt } from './analytics'
 import { getType, groupByType } from './constants'
+import { t } from './i18n'
 
 export const STEP_OPTIONS = [2, 3, 4, 6, 12]
 
@@ -21,6 +22,7 @@ export function rebalanceRows(data, by, month) {
     return held
       .map(({ asset, type, state }) => ({
         key: asset.id,
+        typeId: type.id,
         label: asset.name,
         color: type.color,
         value: state.value,
@@ -36,13 +38,14 @@ export function rebalanceRows(data, by, month) {
     const single = items.length === 1 ? items[0] : null
     return {
       key: type.id,
+      typeId: type.id,
       label: type.label,
       color: type.color,
       value: items.reduce((s, r) => s + r.state.value, 0),
       amountMode: type.mode === 'amount',
       price: single && type.mode === 'unit' && single.state.price > 0 ? single.state.price : null,
       unit: type.unit,
-      note: single ? single.asset.name : `${items.length} varlık`,
+      note: single ? single.asset.name : t(`${items.length} varlık`, `${items.length} assets`),
     }
   })
 }
@@ -107,6 +110,7 @@ export function buildPlan(rows, targets, steps) {
     const step = Math.abs(delta) / steps
     return {
       key: r.key,
+      typeId: r.typeId ?? null, // ad ve birim ekranda bu kimlikten, seçili dile göre yazılır
       label: r.label,
       color: r.color,
       amountMode: r.amountMode,

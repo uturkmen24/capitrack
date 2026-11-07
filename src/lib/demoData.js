@@ -4,17 +4,19 @@
 
 import { DATA_VERSION } from './storage'
 import { currentMonth, shiftMonth } from './format'
+import { t } from './i18n'
 
-const ASSETS = [
-  { id: 'demo-altin', name: 'Gram Altın', type: 'altin', institution: 'Ziraat Bankası', note: '' },
-  { id: 'demo-thyao', name: 'THYAO', type: 'hisse', institution: 'Garanti BBVA Yatırım', note: 'Türk Hava Yolları' },
-  { id: 'demo-bimas', name: 'BIMAS', type: 'hisse', institution: 'Garanti BBVA Yatırım', note: 'BİM Mağazalar' },
+// Varlık adları ve notlar, örnek veri yüklendiği andaki dilde oluşturulur (kurum adları gerçek banka adı olduğu için aynı kalır)
+const assets = () => [
+  { id: 'demo-altin', name: t('Gram Altın', 'Gold (gram)'), type: 'altin', institution: 'Ziraat Bankası', note: '' },
+  { id: 'demo-thyao', name: 'THYAO', type: 'hisse', institution: 'Garanti BBVA Yatırım', note: t('Türk Hava Yolları', 'Turkish Airlines') },
+  { id: 'demo-bimas', name: 'BIMAS', type: 'hisse', institution: 'Garanti BBVA Yatırım', note: t('BİM Mağazalar', 'BIM Stores') },
   { id: 'demo-asels', name: 'ASELS', type: 'hisse', institution: 'Midas', note: 'Aselsan' },
   { id: 'demo-etf', name: 'S&P 500 ETF', type: 'etf', institution: 'Midas', note: '' },
-  { id: 'demo-ppf', name: 'Para Piyasası Fonu', type: 'fon', institution: 'İş Bankası', note: '' },
-  { id: 'demo-tekfon', name: 'Teknoloji Fonu', type: 'fon', institution: 'İş Bankası', note: '' },
-  { id: 'demo-usd', name: 'Dolar', type: 'doviz', institution: 'Garanti BBVA', note: 'Döviz hesabı' },
-  { id: 'demo-mevduat', name: 'Vadeli Mevduat', type: 'mevduat', institution: 'Garanti BBVA', note: '32 gün vadeli' },
+  { id: 'demo-ppf', name: t('Para Piyasası Fonu', 'Money Market Fund'), type: 'fon', institution: 'İş Bankası', note: '' },
+  { id: 'demo-tekfon', name: t('Teknoloji Fonu', 'Technology Fund'), type: 'fon', institution: 'İş Bankası', note: '' },
+  { id: 'demo-usd', name: t('Dolar', 'US Dollar'), type: 'doviz', institution: 'Garanti BBVA', note: t('Döviz hesabı', 'FX account') },
+  { id: 'demo-mevduat', name: t('Vadeli Mevduat', 'Time Deposit'), type: 'mevduat', institution: 'Garanti BBVA', note: t('32 gün vadeli', '32-day term') },
 ]
 
 // [ay sırası (0 = 5 ay önce, 5 = bu ay), gün, varlık, işlem, adet (mevduatta tutar), birim fiyat]
@@ -71,6 +73,6 @@ export function createDemoData() {
     })
   }
 
-  const goal = { name: 'Ev peşinatı', target: 1500000, monthly: 15000, annualReturn: 0.1 }
-  return { version: DATA_VERSION, assets: ASSETS.map((a) => ({ ...a, createdAt })), transactions, prices, goal }
+  const goal = { name: t('Ev peşinatı', 'House down payment'), target: 1500000, monthly: 15000, annualReturn: 0.1 }
+  return { version: DATA_VERSION, assets: assets().map((a) => ({ ...a, createdAt })), transactions, prices, goal }
 }

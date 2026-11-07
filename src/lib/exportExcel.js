@@ -5,6 +5,7 @@
 import { assetStateAt, assetTimeline, breakdown, monthRange } from './analytics'
 import { getType, groupByType } from './constants'
 import { formatMonth } from './format'
+import { t } from './i18n'
 
 const GREEN = 'FF059669'
 const LIGHT = 'FFF1F5F9'
@@ -73,21 +74,21 @@ export async function buildWorkbook(data) {
   const series = new Map(ordered.map((a) => [a.id, new Map(assetTimeline(data, a, lastMonth ?? '0000-00').map((s) => [s.month, s]))]))
 
   // --- 1. Varlıklar: türe göre gruplu özet, grup ara toplamları ve genel toplam ---
-  const s1 = wb.addWorksheet('Varlıklar', { views: [{ state: 'frozen', ySplit: 1, xSplit: 2 }] })
+  const s1 = wb.addWorksheet(t('Varlıklar', 'Assets'), { views: [{ state: 'frozen', ySplit: 1, xSplit: 2 }] })
   s1.columns = [
-    { header: 'Tür', width: 14 },
-    { header: 'Varlık', width: 24 },
-    { header: 'Kurum', width: 22 },
-    { header: 'Miktar', width: 12, style: { numFmt: QTY } },
-    { header: 'Birim', width: 8 },
-    { header: 'Ort. maliyet', width: 14, style: { numFmt: PRICE } },
-    { header: 'Son fiyat', width: 14, style: { numFmt: PRICE } },
-    { header: 'Değer', width: 15, style: { numFmt: TL } },
-    { header: 'Maliyet', width: 15, style: { numFmt: TL } },
-    { header: 'Kâr / Zarar', width: 15, style: { numFmt: TL } },
-    { header: 'K/Z %', width: 9, style: { numFmt: PCT } },
-    { header: 'Gerçekleşen K/Z', width: 16, style: { numFmt: TL } },
-    { header: 'Not', width: 26 },
+    { header: t('Tür', 'Type'), width: 14 },
+    { header: t('Varlık', 'Asset'), width: 24 },
+    { header: t('Kurum', 'Institution'), width: 22 },
+    { header: t('Miktar', 'Quantity'), width: 12, style: { numFmt: QTY } },
+    { header: t('Birim', 'Unit'), width: 8 },
+    { header: t('Ort. maliyet', 'Avg. cost'), width: 14, style: { numFmt: PRICE } },
+    { header: t('Son fiyat', 'Last price'), width: 14, style: { numFmt: PRICE } },
+    { header: t('Değer', 'Value'), width: 15, style: { numFmt: TL } },
+    { header: t('Maliyet', 'Cost'), width: 15, style: { numFmt: TL } },
+    { header: t('Kâr / Zarar', 'Profit / Loss'), width: 15, style: { numFmt: TL } },
+    { header: t('K/Z %', 'P/L %'), width: 9, style: { numFmt: PCT } },
+    { header: t('Gerçekleşen K/Z', 'Realized P/L'), width: 16, style: { numFmt: TL } },
+    { header: t('Not', 'Note'), width: 26 },
   ]
   styleHeader(s1.getRow(1))
   const subtotalRows = []
@@ -122,7 +123,7 @@ export async function buildWorkbook(data) {
       r.getCell(11).value = { formula: `IF(I${n}>0,J${n}/I${n},"")`, result: s?.cost > 0 ? (s.value - s.cost) / s.cost : '' }
     }
     const last = s1.rowCount
-    const sub = s1.addRow([`${g.type.label} toplamı`])
+    const sub = s1.addRow([t(`${g.type.label} toplamı`, `${g.type.label} total`)])
     const n = sub.number
     // Formülün yanında sonucunu da yazıyoruz: formülü hesaplamayan önizleme araçlarında da rakam görünsün
     for (const c of ['H', 'I', 'J', 'L']) {
@@ -134,7 +135,7 @@ export async function buildWorkbook(data) {
     subtotalRows.push(n)
   }
   if (subtotalRows.length) {
-    const tot = s1.addRow(['Genel toplam'])
+    const tot = s1.addRow([t('Genel toplam', 'Grand total')])
     const n = tot.number
     for (const c of ['H', 'I', 'J', 'L'])
       tot.getCell(c).value = { formula: subtotalRows.map((r) => `${c}${r}`).join('+'), result: grand[c] }
@@ -149,8 +150,8 @@ export async function buildWorkbook(data) {
   const pivot = (name, valueOf, numFmt, withTotal) => {
     const ws = wb.addWorksheet(name, { views: [{ state: 'frozen', xSplit: 2, ySplit: 1 }] })
     ws.columns = [
-      { header: 'Tür', width: 14 },
-      { header: 'Varlık', width: 24 },
+      { header: t('Tür', 'Type'), width: 14 },
+      { header: t('Varlık', 'Asset'), width: 24 },
       ...months.map((m) => ({ header: formatMonth(m), width: 15, style: { numFmt } })),
     ]
     styleHeader(ws.getRow(1))
@@ -158,7 +159,7 @@ export async function buildWorkbook(data) {
     if (withTotal && ordered.length) {
       const lastRow = ws.rowCount
       const tot = ws.addRow([
-        'Toplam',
+        t('Toplam', 'Total'),
         '',
         ...months.map((m, i) => ({
           formula: `SUM(${col(3 + i)}2:${col(3 + i)}${lastRow})`,
@@ -170,59 +171,62 @@ export async function buildWorkbook(data) {
     grid(ws, 2, ws.rowCount, 2 + months.length)
     return ws
   }
-  pivot('Aylık Tablo', (a, m) => series.get(a.id).get(m)?.value ?? null, TL, true)
+  pivot(t('Aylık Tablo', 'Monthly Table'), (a, m) => series.get(a.id).get(m)?.value ?? null, TL, true)
 
   // --- 3. İşlemler: tüm alış / satışlar, filtrelenebilir ---
-  const s3 = wb.addWorksheet('İşlemler', { views: [{ state: 'frozen', ySplit: 1 }] })
+  const s3 = wb.addWorksheet(t('İşlemler', 'Transactions'), { views: [{ state: 'frozen', ySplit: 1 }] })
   s3.columns = [
-    { header: 'Tarih', width: 16, style: { numFmt: DATE } },
-    { header: 'Tür', width: 14 },
-    { header: 'Varlık', width: 24 },
-    { header: 'Kurum', width: 22 },
-    { header: 'İşlem', width: 10 },
-    { header: 'Miktar', width: 12, style: { numFmt: QTY } },
-    { header: 'Birim fiyat', width: 14, style: { numFmt: PRICE } },
-    { header: 'Tutar', width: 15, style: { numFmt: TL } },
+    { header: t('Tarih', 'Date'), width: 16, style: { numFmt: DATE } },
+    { header: t('Tür', 'Type'), width: 14 },
+    { header: t('Varlık', 'Asset'), width: 24 },
+    { header: t('Kurum', 'Institution'), width: 22 },
+    { header: t('İşlem', 'Action'), width: 12 },
+    { header: t('Miktar', 'Quantity'), width: 12, style: { numFmt: QTY } },
+    { header: t('Birim fiyat', 'Unit price'), width: 14, style: { numFmt: PRICE } },
+    { header: t('Tutar', 'Amount'), width: 15, style: { numFmt: TL } },
   ]
   styleHeader(s3.getRow(1))
   const byId = new Map(data.assets.map((a) => [a.id, a]))
-  for (const t of [...data.transactions].sort((x, y) => x.date.localeCompare(y.date))) {
-    const a = byId.get(t.assetId)
+  for (const tr of [...data.transactions].sort((x, y) => x.date.localeCompare(y.date))) {
+    const a = byId.get(tr.assetId)
     const type = getType(a.type)
     const amount = type.mode === 'amount'
-    const label = amount ? (t.kind === 'buy' ? 'Yatırma' : 'Çekme') : t.kind === 'buy' ? 'Alış' : 'Satış'
-    const r = s3.addRow([toDate(t.date), type.label, a.name, a.institution, label, amount ? null : t.quantity, amount ? null : t.price, null])
-    r.getCell(8).value = amount ? t.quantity : { formula: `F${r.number}*G${r.number}`, result: t.quantity * t.price }
+    const buy = tr.kind === 'buy'
+    const label = amount ? (buy ? t('Yatırma', 'Deposit') : t('Çekme', 'Withdrawal')) : buy ? t('Alış', 'Buy') : t('Satış', 'Sell')
+    const r = s3.addRow([toDate(tr.date), type.label, a.name, a.institution, label, amount ? null : tr.quantity, amount ? null : tr.price, null])
+    r.getCell(8).value = amount ? tr.quantity : { formula: `F${r.number}*G${r.number}`, result: tr.quantity * tr.price }
   }
   s3.autoFilter = { from: 'A1', to: `H${Math.max(s3.rowCount, 1)}` }
   grid(s3, 2, s3.rowCount, 8)
 
-  pivot('Aylık Fiyatlar', (a, m) => data.prices[m]?.[a.id] ?? null, PRICE, false)
+  pivot(t('Aylık Fiyatlar', 'Monthly Prices'), (a, m) => data.prices[m]?.[a.id] ?? null, PRICE, false)
 
   // --- 5. Dağılım: son ayın türe ve kuruma göre dağılımı (yan yana iki tablo) ---
-  const s5 = wb.addWorksheet('Dağılım')
+  const s5 = wb.addWorksheet(t('Dağılım', 'Allocation'))
   s5.columns = [{ width: 18 }, { width: 15 }, { width: 10 }, { width: 4 }, { width: 24 }, { width: 15 }, { width: 10 }]
-  s5.getCell('A1').value = `${lastMonth ? formatMonth(lastMonth) : ''} itibarıyla dağılım`
+  const asOf = lastMonth ? formatMonth(lastMonth) : ''
+  s5.getCell('A1').value = t(`${asOf} itibarıyla dağılım`, `Allocation as of ${asOf}`)
   s5.getCell('A1').font = { bold: true, size: 13 }
+  const unspecified = t('Belirtilmemiş', 'Unspecified')
   const tables = [
-    { c: 1, title: 'Tür', rows: lastMonth ? breakdown(data, lastMonth, (a) => a.type).map((r) => ({ ...r, key: getType(r.key).label })) : [] },
-    { c: 5, title: 'Kurum', rows: lastMonth ? breakdown(data, lastMonth, (a) => a.institution || 'Belirtilmemiş') : [] },
+    { c: 1, title: t('Tür', 'Type'), rows: lastMonth ? breakdown(data, lastMonth, (a) => a.type).map((r) => ({ ...r, key: getType(r.key).label })) : [] },
+    { c: 5, title: t('Kurum', 'Institution'), rows: lastMonth ? breakdown(data, lastMonth, (a) => a.institution || unspecified) : [] },
   ]
-  for (const t of tables) {
-    ;[t.title, 'Değer', 'Pay'].forEach((h, i) => {
-      const cell = s5.getCell(3, t.c + i)
+  for (const tb of tables) {
+    ;[tb.title, t('Değer', 'Value'), t('Pay', 'Share')].forEach((h, i) => {
+      const cell = s5.getCell(3, tb.c + i)
       cell.value = h
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GREEN } }
     })
-    t.rows.forEach((r, i) => {
+    tb.rows.forEach((r, i) => {
       const row = 4 + i
-      s5.getCell(row, t.c).value = r.key
-      s5.getCell(row, t.c + 1).value = r.value
-      s5.getCell(row, t.c + 1).numFmt = TL
-      s5.getCell(row, t.c + 2).value = r.share
-      s5.getCell(row, t.c + 2).numFmt = PCT
-      for (let k = 0; k < 3; k++) s5.getCell(row, t.c + k).border = { bottom: BORDER }
+      s5.getCell(row, tb.c).value = r.key
+      s5.getCell(row, tb.c + 1).value = r.value
+      s5.getCell(row, tb.c + 1).numFmt = TL
+      s5.getCell(row, tb.c + 2).value = r.share
+      s5.getCell(row, tb.c + 2).numFmt = PCT
+      for (let k = 0; k < 3; k++) s5.getCell(row, tb.c + k).border = { bottom: BORDER }
     })
   }
 

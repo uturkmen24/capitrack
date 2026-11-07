@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { depositComparison, realReturn } from '../lib/benchmark'
 import { amountToInput, formatPercent, formatSignedTL, formatTL, parseAmount } from '../lib/format'
+import { t } from '../lib/i18n'
 import { usePref } from '../lib/prefs'
 
 // "Benchmark & Fırsat Maliyeti": iki kart yan yana (telefonda alt alta).
@@ -17,27 +18,32 @@ export default function BenchmarkCards({ transactions, value, cardClass }) {
     <div className="grid gap-4 md:grid-cols-2">
       <section className={cardClass}>
         <CardHeader
-          title="Enflasyona göre reel getiri"
-          subtitle="Satın alma gücün arttı mı?"
-          input={<RateInput label="Yıllık TÜFE" value={inflation} onChange={setInflation} />}
+          title={t('Enflasyona göre reel getiri', 'Real return after inflation')}
+          subtitle={t('Satın alma gücün arttı mı?', 'Did your purchasing power grow?')}
+          input={<RateInput label={t('Yıllık TÜFE', 'Annual CPI')} value={inflation} onChange={setInflation} />}
         />
         {real ? (
           <>
             <Badge up={real.real >= 0}>
               {real.real >= 0
-                ? `Reel Kazanç: ${formatPercent(real.real, 1)} (Satın Alma Gücü Arttı)`
-                : `Reel Kayıp: ${formatPercent(real.real, 1)}`}
+                ? t(
+                    `Reel Kazanç: ${formatPercent(real.real, 1)} (Satın Alma Gücü Arttı)`,
+                    `Real Gain: ${formatPercent(real.real, 1)} (Purchasing Power Up)`,
+                  )
+                : t(`Reel Kayıp: ${formatPercent(real.real, 1)}`, `Real Loss: ${formatPercent(real.real, 1)}`)}
             </Badge>
             <Rows
               rows={[
-                ['Nominal getiri', formatPercent(real.nominal, 1)],
-                ['Aynı dönemdeki enflasyon', formatPercent(real.periodInflation, 1)],
-                ['Alım gücünü korumak için gereken', formatTL(real.needed)],
+                [t('Nominal getiri', 'Nominal return'), formatPercent(real.nominal, 1)],
+                [t('Aynı dönemdeki enflasyon', 'Inflation over the same period'), formatPercent(real.periodInflation, 1)],
+                [t('Alım gücünü korumak için gereken', 'Needed to keep purchasing power'), formatTL(real.needed)],
               ]}
             />
             <Hint>
-              Reel getiri = (1 + nominal) ÷ (1 + enflasyon) − 1. Her para girişi kendi tarihinden bugüne enflasyonla büyütülür,
-              satışlar düşülür.
+              {t(
+                'Reel getiri = (1 + nominal) ÷ (1 + enflasyon) − 1. Her para girişi kendi tarihinden bugüne enflasyonla büyütülür, satışlar düşülür.',
+                'Real return = (1 + nominal) ÷ (1 + inflation) − 1. Each contribution is grown by inflation from its own date to today; sales are subtracted.',
+              )}
             </Hint>
           </>
         ) : (
@@ -47,27 +53,35 @@ export default function BenchmarkCards({ transactions, value, cardClass }) {
 
       <section className={cardClass}>
         <CardHeader
-          title="Sadece mevduat olsaydı"
-          subtitle="Fırsat maliyeti"
-          input={<RateInput label="Yıllık faiz" value={depositRate} onChange={setDepositRate} />}
+          title={t('Sadece mevduat olsaydı', 'If it were all in a deposit')}
+          subtitle={t('Fırsat maliyeti', 'Opportunity cost')}
+          input={<RateInput label={t('Yıllık faiz', 'Annual rate')} value={depositRate} onChange={setDepositRate} />}
         />
         {dep ? (
           <>
             <Badge up={dep.diff >= 0}>
               {dep.diff >= 0
-                ? `Faize göre ${formatSignedTL(dep.diff)} daha kârlı (${formatPercent(dep.alpha, 1)} Alfa)`
-                : `Faizin ${formatTL(Math.abs(dep.diff))} gerisinde (${formatPercent(dep.alpha, 1)})`}
+                ? t(
+                    `Faize göre ${formatSignedTL(dep.diff)} daha kârlı (${formatPercent(dep.alpha, 1)} Alfa)`,
+                    `${formatSignedTL(dep.diff)} ahead of the deposit (${formatPercent(dep.alpha, 1)} Alpha)`,
+                  )
+                : t(
+                    `Faizin ${formatTL(Math.abs(dep.diff))} gerisinde (${formatPercent(dep.alpha, 1)})`,
+                    `${formatTL(Math.abs(dep.diff))} behind the deposit (${formatPercent(dep.alpha, 1)})`,
+                  )}
             </Badge>
             <Rows
               rows={[
-                ['Portföyün bugünkü değeri', formatTL(value)],
-                ['Mevduatta olsaydı', formatTL(dep.deposit)],
-                ['Yatırılan net para', formatTL(dep.net)],
+                [t('Portföyün bugünkü değeri', 'Portfolio value today'), formatTL(value)],
+                [t('Mevduatta olsaydı', 'If held in a deposit'), formatTL(dep.deposit)],
+                [t('Yatırılan net para', 'Net amount invested'), formatTL(dep.net)],
               ]}
             />
             <Hint>
-              Her alış aynı gün mevduata yatırılmış gibi hesaplanır: Tutar × (1 + faiz)^(gün ÷ 365). Stopaj sonrası (net) faizi
-              yazarsan karşılaştırma daha adil olur.
+              {t(
+                'Her alış aynı gün mevduata yatırılmış gibi hesaplanır: Tutar × (1 + faiz)^(gün ÷ 365). Stopaj sonrası (net) faizi yazarsan karşılaştırma daha adil olur.',
+                'Each purchase is treated as if it had been deposited on the same day: Amount × (1 + rate)^(days ÷ 365). Enter the after-tax (net) rate for a fairer comparison.',
+              )}
             </Hint>
           </>
         ) : (
@@ -122,7 +136,11 @@ function Hint({ children }) {
 }
 
 function Empty() {
-  return <p className="text-sm text-slate-500">Hesap için yatırılan net paranın sıfırdan büyük olması gerekiyor.</p>
+  return (
+    <p className="text-sm text-slate-500">
+      {t('Hesap için yatırılan net paranın sıfırdan büyük olması gerekiyor.', 'The net amount invested must be greater than zero.')}
+    </p>
+  )
 }
 
 // Küçük yüzde kutusu. Yazarken geçersiz değer (boş, harf) kaydedilmez; kutu kırmızı olur, son geçerli oran kullanılır.

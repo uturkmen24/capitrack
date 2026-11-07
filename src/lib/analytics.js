@@ -17,7 +17,8 @@
 //   Para yatırma: maliyet += tutar. Para çekme: maliyetten, çekilen tutarın bakiyeye oranı kadar düşülür.
 
 import { isAmountMode } from './constants'
-import { shiftMonth } from './format'
+import { formatDate, formatQty, shiftMonth } from './format'
+import { t as tx } from './i18n' // "t" adı aşağıda işlemler için kullanıldığından çeviri fonksiyonu "tx"
 
 const monthOf = (date) => date.slice(0, 7)
 const EPS = 1e-9
@@ -178,14 +179,24 @@ export function checkTransactions(data, asset, transactions) {
         .filter((x) => x.kind === 'buy' && monthOf(x.date) === monthOf(t.date) && x.date <= t.date)
         .reduce((s, x) => s + x.quantity, 0)
       const available = (before?.value ?? 0) + sameMonthIn
-      if (t.quantity > available + 0.005) return `${t.date} tarihinde bakiyeden fazla para çekilmiş görünüyor.`
+      if (t.quantity > available + 0.005)
+        return tx(
+          `${formatDate(t.date)} tarihinde bakiyeden fazla para çekilmiş görünüyor.`,
+          `On ${formatDate(t.date)} more money would be withdrawn than the balance.`,
+        )
     }
     return null
   }
   let qty = 0
   for (const t of txs) {
     qty += t.kind === 'buy' ? t.quantity : -t.quantity
-    if (qty < -EPS) return `${t.date} tarihinde elde olandan fazla satış oluyor. O tarihte elde ${Math.max(0, qty + t.quantity).toLocaleString('tr-TR')} birim vardı.`
+    if (qty < -EPS) {
+      const had = formatQty(Math.max(0, qty + t.quantity))
+      return tx(
+        `${formatDate(t.date)} tarihinde elde olandan fazla satış oluyor. O tarihte elde ${had} birim vardı.`,
+        `On ${formatDate(t.date)} you would sell more than you hold. You held ${had} units on that date.`,
+      )
+    }
   }
   return null
 }

@@ -2,12 +2,9 @@ import { useState } from 'react'
 import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts'
 import { getType } from '../lib/constants'
 import { formatCompactTL, formatShare, formatTL } from '../lib/format'
+import { t } from '../lib/i18n'
 import { usePref } from '../lib/prefs'
-
-const VIEWS = [
-  ['bar', 'Çubuk'],
-  ['pie', 'Pasta'],
-]
+import { chartColors } from '../lib/theme'
 
 // "Türe göre dağılım" kartı. Sağ üstteki seçiciyle çubuk veya pasta görünümü seçilir (seçim hatırlanır).
 // İki görünümde de altta her türün adı, tutarı ve yüzdesi listelenir; kesin rakamlar oradan okunur.
@@ -16,16 +13,20 @@ export default function TypeDistribution({ rows, subtitle, className }) {
   // Üzerine gelinen tür. Pasta ile liste bunu paylaşır: birinde bir türe gelince diğerinde de öne çıkar.
   const [activeKey, setActiveKey] = useState(null)
   const total = rows.reduce((s, r) => s + r.value, 0)
+  const views = [
+    ['bar', t('Çubuk', 'Bar')],
+    ['pie', t('Pasta', 'Pie')],
+  ]
 
   return (
     <section className={className}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="font-semibold">Türe göre dağılım</h3>
+          <h3 className="font-semibold">{t('Türe göre dağılım', 'Allocation by type')}</h3>
           <p className="text-sm text-slate-500">{subtitle}</p>
         </div>
-        <div className="flex rounded-lg bg-slate-100 p-0.5 text-xs font-medium" role="group" aria-label="Görünüm">
-          {VIEWS.map(([id, label]) => (
+        <div className="flex rounded-lg bg-slate-100 p-0.5 text-xs font-medium" role="group" aria-label={t('Görünüm', 'View')}>
+          {views.map(([id, label]) => (
             <button
               key={id}
               onClick={() => setView(id)}
@@ -72,7 +73,7 @@ export default function TypeDistribution({ rows, subtitle, className }) {
 // Tek bir çubuk, türlere bölünmüş. Dilimler arasında 2px boşluk var ki komşu renkler birbirine karışmasın.
 function SegmentedBar({ rows }) {
   return (
-    <div className="flex h-3 gap-[2px] overflow-hidden rounded-full" role="img" aria-label="Türe göre dağılım çubuğu">
+    <div className="flex h-3 gap-[2px] overflow-hidden rounded-full" role="img" aria-label={t('Türe göre dağılım çubuğu', 'Allocation by type bar')}>
       {rows.map((r) => {
         const t = getType(r.key)
         return (
@@ -107,7 +108,7 @@ function Donut({ rows, total, activeKey, onActive }) {
             outerRadius="95%"
             startAngle={90}
             endAngle={-270}
-            stroke="#ffffff"
+            stroke={chartColors().surface} // dilimler arası boşluk: kart zemini rengi (karanlık temada koyu)
             strokeWidth={2}
             isAnimationActive={false}
             onMouseEnter={(_, index) => onActive(rows[index]?.key ?? null)}
@@ -139,7 +140,7 @@ function Donut({ rows, total, activeKey, onActive }) {
           </>
         ) : (
           <>
-            <span className="text-xs text-slate-500">Toplam</span>
+            <span className="text-xs text-slate-500">{t('Toplam', 'Total')}</span>
             <span className="text-lg font-bold">{formatCompactTL(total)}</span>
           </>
         )}

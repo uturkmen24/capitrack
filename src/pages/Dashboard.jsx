@@ -15,15 +15,11 @@ import {
   formatSignedTL,
   formatTL,
 } from '../lib/format'
-
-// Grafiklerin ortak "çerçeve" renkleri: ızgara, eksen, eksen yazıları. Veri öne çıksın diye soluk.
-const GRID = '#e1e0d9'
-const AXIS = '#c3c2b7'
-const MUTED = '#898781'
-const LINE = '#059669' // CapiTrack yeşili: toplam değer
-const COST_LINE = '#94a3b8' // gri kesikli: maliyet (yatırılan para)
+import { t } from '../lib/i18n'
+import { chartColors } from '../lib/theme'
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm'
+const UNSPECIFIED = '\u0000' // kurumu boş varlıkların ortak anahtarı; ekranda "Belirtilmemiş" yazılır
 
 // "Panel" ekranı: toplam varlık, hedef, zaman içindeki değişim ve dağılımlar.
 export default function Dashboard({ portfolio, goTo }) {
@@ -34,25 +30,31 @@ export default function Dashboard({ portfolio, goTo }) {
     const noAssets = data.assets.length === 0
     return (
       <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
-        <p className="font-medium">{noAssets ? 'CapiTrack’e hoş geldin' : 'Henüz alış eklenmedi'}</p>
+        <p className="font-medium">{noAssets ? t('CapiTrack’e hoş geldin', 'Welcome to CapiTrack') : t('Henüz alış eklenmedi', 'No purchases yet')}</p>
         <p className="mt-1 text-sm text-slate-500">
           {noAssets
-            ? 'Başlamak için yatırımlarını ve alışlarını ekle. Panel, girdiğin bilgilerden otomatik oluşur.'
-            : 'Varlıklarım ekranında “Al” ile ilk alışını eklediğinde grafikler burada belirecek.'}
+            ? t(
+                'Başlamak için yatırımlarını ve alışlarını ekle. Panel, girdiğin bilgilerden otomatik oluşur.',
+                'Add your investments and purchases to get started. The dashboard builds itself from what you enter.',
+              )
+            : t(
+                'Varlıklarım ekranında “Al” ile ilk alışını eklediğinde grafikler burada belirecek.',
+                'Charts will appear here once you add your first purchase with “Buy” on the My Assets screen.',
+              )}
         </p>
         <div className="mt-4 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => goTo('varliklar')}
             className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
           >
-            {noAssets ? 'Varlık ekle' : 'Varlıklarıma git'}
+            {noAssets ? t('Varlık ekle', 'Add asset') : t('Varlıklarıma git', 'Go to My Assets')}
           </button>
           {noAssets && (
             <button
               onClick={() => portfolio.replaceData(createDemoData())}
               className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
             >
-              Örnek veriyle dene
+              {t('Örnek veriyle dene', 'Try with sample data')}
             </button>
           )}
         </div>
@@ -63,11 +65,15 @@ export default function Dashboard({ portfolio, goTo }) {
   const last = series[series.length - 1]
   const prev = series.length > 1 ? series[series.length - 2] : null
   const byType = breakdown(data, last.month, (a) => a.type)
-  const byInstitution = breakdown(data, last.month, (a) => a.institution || 'Belirtilmemiş')
+  const byInstitution = breakdown(data, last.month, (a) => a.institution || UNSPECIFIED).map((r) =>
+    r.key === UNSPECIFIED ? { ...r, key: t('Belirtilmemiş', 'Unspecified') } : r,
+  )
+  const colors = chartColors()
 
   // Bu ayki getiri: değerdeki artış − bu ay eklenen yeni para. Böylece yeni alım "kâr" gibi görünmez.
   const monthReturn = last.total - (prev?.total ?? 0) - last.flow
   const returnBase = prev?.total || last.flow // ilk ayda: yatırılan paraya göre
+  const flowText = formatTL(Math.abs(last.flow))
 
   return (
     <div className="space-y-4">
@@ -75,22 +81,24 @@ export default function Dashboard({ portfolio, goTo }) {
       <div className="grid gap-4 sm:grid-cols-3">
         <TotalTile total={last.total} month={last.month} className={card} />
         <StatTile
-          title="Bu ayki getiri"
+          title={t('Bu ayki getiri', 'This month’s return')}
           amount={monthReturn}
           ratio={returnBase > 0 ? monthReturn / returnBase : null}
           notes={[
             prev ? `${formatMonth(prev.month)} → ${formatMonth(last.month)}` : formatMonth(last.month),
             Math.abs(last.flow) > 0.5 &&
-              `${last.flow > 0 ? 'Eklenen' : 'Çekilen'} ${formatTL(Math.abs(last.flow))} getiriye dahil değil`,
+              (last.flow > 0
+                ? t(`Eklenen ${flowText} getiriye dahil değil`, `${flowText} added is not counted as return`)
+                : t(`Çekilen ${flowText} getiriye dahil değil`, `${flowText} withdrawn is not counted as return`)),
           ]}
         />
         <StatTile
-          title="Kâr / Zarar"
+          title={t('Kâr / Zarar', 'Profit / Loss')}
           amount={last.total - last.cost}
           ratio={last.cost > 0 ? (last.total - last.cost) / last.cost : null}
           notes={[
-            `Maliyet: ${formatTL(last.cost)}`,
-            Math.abs(last.realized) > 0.5 && `Satışlardan gerçekleşen: ${formatSignedTL(last.realized)}`,
+            `${t('Maliyet', 'Cost')}: ${formatTL(last.cost)}`,
+            Math.abs(last.realized) > 0.5 && `${t('Satışlardan gerçekleşen', 'Realized from sales')}: ${formatSignedTL(last.realized)}`,
           ]}
         />
       </div>
@@ -108,34 +116,37 @@ export default function Dashboard({ portfolio, goTo }) {
       <section className={card}>
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h3 className="font-semibold">Toplam değer ve maliyet</h3>
-            <p className="text-sm text-slate-500">İki çizgi arasındaki fark kâr/zararındır</p>
+            <h3 className="font-semibold">{t('Toplam değer ve maliyet', 'Total value and cost')}</h3>
+            <p className="text-sm text-slate-500">{t('İki çizgi arasındaki fark kâr/zararındır', 'The gap between the lines is your profit/loss')}</p>
           </div>
           {/* Açıklama (lejant): iki çizgi olduğu için hangisinin ne olduğu yazıyla da belirtilir */}
           <div className="flex gap-4 text-xs text-slate-600">
             <span className="flex items-center gap-1.5">
-              <span className="h-0.5 w-4 rounded" style={{ background: LINE }} /> Değer
+              <span className="h-0.5 w-4 rounded" style={{ background: colors.value }} /> {t('Değer', 'Value')}
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-4 border-t-2 border-dashed" style={{ borderColor: COST_LINE }} /> Maliyet
+              <span className="w-4 border-t-2 border-dashed" style={{ borderColor: colors.cost }} /> {t('Maliyet', 'Cost')}
             </span>
           </div>
         </div>
         {series.length < 2 ? (
           <p className="py-10 text-center text-sm text-slate-500">
-            Grafik, en az iki aylık veri girdiğinde oluşur. Geçmiş ayları “Aylık Güncelleme” ekranından girebilirsin.
+            {t(
+              'Grafik, en az iki aylık veri girdiğinde oluşur. Geçmiş ayları “Aylık Güncelleme” ekranından girebilirsin.',
+              'The chart appears once there are at least two months of data. You can enter past months on the “Monthly Update” screen.',
+            )}
           </p>
         ) : (
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={series} margin={{ top: 8, right: 28, bottom: 0, left: 0 }}>
-                <CartesianGrid vertical={false} stroke={GRID} />
+                <CartesianGrid vertical={false} stroke={colors.grid} />
                 <XAxis
                   dataKey="month"
                   tickFormatter={formatMonthShort}
                   tickLine={false}
-                  axisLine={{ stroke: AXIS }}
-                  tick={{ fill: MUTED, fontSize: 12 }}
+                  axisLine={{ stroke: colors.axis }}
+                  tick={{ fill: colors.muted, fontSize: 12 }}
                   minTickGap={16}
                 />
                 <YAxis
@@ -143,28 +154,28 @@ export default function Dashboard({ portfolio, goTo }) {
                   tickFormatter={(v) => formatCompactTL(v)}
                   tickLine={false}
                   axisLine={false}
-                  tick={{ fill: MUTED, fontSize: 12 }}
+                  tick={{ fill: colors.muted, fontSize: 12 }}
                   width={72}
                 />
-                <Tooltip content={<TotalTooltip series={series} />} cursor={{ stroke: AXIS }} wrapperStyle={{ zIndex: 10 }} />
+                <Tooltip content={<TotalTooltip series={series} />} cursor={{ stroke: colors.axis }} wrapperStyle={{ zIndex: 10 }} />
                 <Line
                   type="linear"
                   dataKey="cost"
-                  stroke={COST_LINE}
+                  stroke={colors.cost}
                   strokeWidth={2}
                   strokeDasharray="5 4"
                   isAnimationActive={false}
                   dot={false}
-                  activeDot={{ r: 4, fill: COST_LINE, stroke: '#fff', strokeWidth: 2 }}
+                  activeDot={{ r: 4, fill: colors.cost, stroke: colors.surface, strokeWidth: 2 }}
                 />
                 <Line
                   type="monotone"
                   dataKey="total"
-                  stroke={LINE}
+                  stroke={colors.value}
                   strokeWidth={2}
                   isAnimationActive={false}
-                  dot={series.length <= 12 ? { r: 4, fill: LINE, stroke: '#fff', strokeWidth: 2 } : false}
-                  activeDot={{ r: 6, fill: LINE, stroke: '#fff', strokeWidth: 2 }}
+                  dot={series.length <= 12 ? { r: 4, fill: colors.value, stroke: colors.surface, strokeWidth: 2 } : false}
+                  activeDot={{ r: 6, fill: colors.value, stroke: colors.surface, strokeWidth: 2 }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -177,7 +188,7 @@ export default function Dashboard({ portfolio, goTo }) {
         <TypeDistribution rows={byType} subtitle={formatMonth(last.month)} className={card} />
 
         <section className={card}>
-          <h3 className="font-semibold">Kuruma göre dağılım</h3>
+          <h3 className="font-semibold">{t('Kuruma göre dağılım', 'Allocation by institution')}</h3>
           <p className="mb-4 text-sm text-slate-500">{formatMonth(last.month)}</p>
           <RankedBars rows={byInstitution} />
         </section>
@@ -217,14 +228,16 @@ function TotalTooltip({ active, payload, series }) {
     <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-lg">
       <p className="text-xs text-slate-500">{formatMonth(point.month)}</p>
       <p className="font-semibold tabular-nums">{formatTL(point.total)}</p>
-      <p className="text-xs tabular-nums text-slate-500">Maliyet: {formatTL(point.cost)}</p>
+      <p className="text-xs tabular-nums text-slate-500">
+        {t('Maliyet', 'Cost')}: {formatTL(point.cost)}
+      </p>
       <p className="text-xs tabular-nums text-slate-600">
-        K/Z: {formatSignedTL(point.total - point.cost)}
+        {t('K/Z', 'P/L')}: {formatSignedTL(point.total - point.cost)}
         {point.cost > 0 && ` (${formatPercent((point.total - point.cost) / point.cost)})`}
       </p>
       {ret !== null && (
         <p className="text-xs tabular-nums text-slate-600">
-          Aylık getiri: {ret >= 0 ? '▲' : '▼'} {formatSignedTL(ret)}
+          {t('Aylık getiri', 'Monthly return')}: {ret >= 0 ? '▲' : '▼'} {formatSignedTL(ret)}
         </p>
       )}
     </div>

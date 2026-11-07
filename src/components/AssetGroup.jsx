@@ -1,4 +1,5 @@
 import { formatTL } from '../lib/format'
+import { t } from '../lib/i18n'
 import ProfitLoss from './ProfitLoss'
 
 // Açılıp kapanabilen grup kutusu. Başlıkta türün adı, varlık sayısı, toplam değeri ve kâr/zararı yazar.
@@ -16,7 +17,8 @@ export default function AssetGroup({ type, count, value, cost, collapsed, onTogg
         </span>
         <span className="h-3 w-3 shrink-0 rounded-sm" style={{ background: type.color }} />
         <span className="flex-1 font-semibold">
-          {type.label} <span className="whitespace-nowrap font-normal text-slate-500">· {count} varlık</span>
+          {type.label}{' '}
+          <span className="whitespace-nowrap font-normal text-slate-500">· {t(`${count} varlık`, `${count} assets`)}</span>
         </span>
         <span className="text-right">
           <span className="block font-semibold tabular-nums">{formatTL(value)}</span>

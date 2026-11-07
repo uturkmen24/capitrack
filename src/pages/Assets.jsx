@@ -8,6 +8,7 @@ import TypeBadge from '../components/TypeBadge'
 import { assetStateAt, checkTransactions } from '../lib/analytics'
 import { getType, splitByType } from '../lib/constants'
 import { currentMonth, formatPrice, formatQty, formatSignedTL, formatTL } from '../lib/format'
+import { t } from '../lib/i18n'
 import { usePref } from '../lib/prefs'
 
 const btn = 'rounded-lg px-3 py-1.5 text-sm hover:bg-slate-100'
@@ -43,23 +44,37 @@ export default function Assets({ portfolio }) {
   }
 
   function handleDeleteTx(asset, tx) {
-    const rest = data.transactions.filter((t) => t.id !== tx.id)
+    const rest = data.transactions.filter((x) => x.id !== tx.id)
     const problem = checkTransactions(data, asset, rest)
-    if (problem) return window.alert(`Bu işlem silinemez: ${problem}`)
-    if (window.confirm('Bu işlem silinsin mi? Ortalama maliyet ve kâr/zarar yeniden hesaplanır.')) deleteTransaction(tx.id)
+    if (problem) return window.alert(t(`Bu işlem silinemez: ${problem}`, `This transaction can’t be deleted: ${problem}`))
+    if (
+      window.confirm(
+        t(
+          'Bu işlem silinsin mi? Ortalama maliyet ve kâr/zarar yeniden hesaplanır.',
+          'Delete this transaction? Average cost and profit/loss will be recalculated.',
+        ),
+      )
+    )
+      deleteTransaction(tx.id)
   }
 
   function handleDelete(asset) {
-    if (window.confirm(`"${asset.name}", tüm işlemleri ve fiyat geçmişiyle birlikte silinsin mi?`)) deleteAsset(asset.id)
+    const ok = window.confirm(
+      t(
+        `"${asset.name}", tüm işlemleri ve fiyat geçmişiyle birlikte silinsin mi?`,
+        `Delete "${asset.name}" together with all its transactions and price history?`,
+      ),
+    )
+    if (ok) deleteAsset(asset.id)
   }
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-semibold">Varlıklarım</h2>
+          <h2 className="text-xl font-semibold">{t('Varlıklarım', 'My Assets')}</h2>
           <p className="text-sm text-slate-500">
-            {data.assets.length} varlık
+            {t(`${data.assets.length} varlık`, `${data.assets.length} assets`)}
             {data.assets.length > 0 && (
               <>
                 {' · '}
@@ -73,7 +88,7 @@ export default function Assets({ portfolio }) {
             onClick={() => setAdding(true)}
             className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700"
           >
-            + Varlık ekle
+            {t('+ Varlık ekle', '+ Add asset')}
           </button>
         )}
       </div>
@@ -91,10 +106,12 @@ export default function Assets({ portfolio }) {
 
       {data.assets.length === 0 && !adding && (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
-          <p className="font-medium">Henüz varlık eklemedin</p>
+          <p className="font-medium">{t('Henüz varlık eklemedin', 'You haven’t added any assets yet')}</p>
           <p className="mt-1 text-sm text-slate-500">
-            Her hisseyi, fonu veya hesabı ayrı ayrı ekle (ör. THYAO, BIMAS). Aynı türden birden fazla varlık olunca otomatik
-            olarak bir başlık altında toplanır.
+            {t(
+              'Her hisseyi, fonu veya hesabı ayrı ayrı ekle (ör. THYAO, BIMAS). Aynı türden birden fazla varlık olunca otomatik olarak bir başlık altında toplanır.',
+              'Add each stock, fund or account separately (e.g. THYAO, BIMAS). When you have more than one asset of the same type, they are grouped under one heading automatically.',
+            )}
           </p>
         </div>
       )}
@@ -131,7 +148,7 @@ export default function Assets({ portfolio }) {
           asset={asset}
           state={state}
           showType={showType}
-          txCount={data.transactions.filter((t) => t.assetId === asset.id).length}
+          txCount={data.transactions.filter((x) => x.assetId === asset.id).length}
           onPanel={(kind) => togglePanel(asset.id, kind)}
           activePanel={panel?.id === asset.id ? panel.kind : null}
           onDelete={() => handleDelete(asset)}
@@ -147,7 +164,7 @@ export default function Assets({ portfolio }) {
             <AssetForm
               key={asset.id}
               asset={asset}
-              lockedMode={data.transactions.some((t) => t.assetId === asset.id) ? getType(asset.type).mode : null}
+              lockedMode={data.transactions.some((x) => x.assetId === asset.id) ? getType(asset.type).mode : null}
               institutions={institutions}
               onSave={(fields) => {
                 updateAsset(asset.id, fields)
@@ -169,12 +186,13 @@ function AssetRow({ asset, state, showType, txCount, onPanel, activePanel, onDel
   const soldOut = state && state.value === 0 && state.cost === 0 && txCount > 0
   const active = (kind) => (activePanel === kind ? 'bg-slate-100 font-medium' : '')
 
+  const realizedText = `${t('Gerçekleşen', 'Realized')}: ${state ? formatSignedTL(state.realized) : ''}`
   let detail
-  if (!state) detail = 'Henüz alış yok. “Al” ile ilk alışı ekle.'
-  else if (soldOut) detail = `Tamamı satıldı · Gerçekleşen: ${formatSignedTL(state.realized)}`
-  else if (amountMode) detail = `Yatırılan: ${formatTL(state.cost)}`
+  if (!state) detail = t('Henüz alış yok. “Al / Sat” ile ilk alışı ekle.', 'No purchases yet. Add the first one with “Buy / Sell”.')
+  else if (soldOut) detail = `${t('Tamamı satıldı', 'Fully sold')} · ${realizedText}`
+  else if (amountMode) detail = `${t('Yatırılan', 'Deposited')}: ${formatTL(state.cost)}`
   else
-    detail = `${formatQty(state.qty)} ${type.unit} · Ort. maliyet ${formatPrice(state.avg)} · Son fiyat ${
+    detail = `${formatQty(state.qty)} ${type.unit} · ${t('Ort. maliyet', 'Avg. cost')} ${formatPrice(state.avg)} · ${t('Son fiyat', 'Last price')} ${
       state.price != null ? formatPrice(state.price) : '—'
     }`
 
@@ -195,20 +213,20 @@ function AssetRow({ asset, state, showType, txCount, onPanel, activePanel, onDel
       </div>
       <p className="mt-1 text-xs text-slate-600 tabular-nums">
         {detail}
-        {state && !soldOut && state.realized !== 0 && ` · Gerçekleşen: ${formatSignedTL(state.realized)}`}
+        {state && !soldOut && state.realized !== 0 && ` · ${realizedText}`}
       </p>
       <div className="mt-2 flex flex-wrap gap-1">
         <button onClick={() => onPanel('trade')} className={`${btn} text-emerald-700 ${active('trade')}`}>
-          {amountMode ? 'Yatır / Çek' : 'Al / Sat'}
+          {amountMode ? t('Yatır / Çek', 'Deposit / Withdraw') : t('Al / Sat', 'Buy / Sell')}
         </button>
         <button onClick={() => onPanel('history')} className={`${btn} text-slate-600 ${active('history')}`}>
-          İşlemler ({txCount})
+          {t('İşlemler', 'Transactions')} ({txCount})
         </button>
         <button onClick={() => onPanel('edit')} className={`${btn} text-slate-600 ${active('edit')}`}>
-          Düzenle
+          {t('Düzenle', 'Edit')}
         </button>
         <button onClick={onDelete} className={`${btn} text-red-600 hover:bg-red-50`}>
-          Sil
+          {t('Sil', 'Delete')}
         </button>
       </div>
     </div>

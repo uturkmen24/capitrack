@@ -7,6 +7,7 @@ export default function SuggestInput({ value, onChange, suggestions, className, 
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(-1) // klavyeyle seçili öneri
 
+  // Kurum adları Türkçe olduğu için (İş Bankası) karşılaştırma her dilde Türkçe küçük harf kuralıyla yapılır
   const q = value.trim().toLocaleLowerCase('tr')
   const matches = suggestions.filter((s) => {
     const low = s.toLocaleLowerCase('tr')

@@ -1,4 +1,5 @@
 import { amountsHidden, formatTL, parseAmount, today } from '../lib/format'
+import { t } from '../lib/i18n'
 
 export const inputClass =
   'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20'
@@ -16,25 +17,49 @@ export default function TradeFields({ type, value, onChange }) {
   return (
     <div className={`grid gap-4 ${amountMode ? 'sm:grid-cols-2' : 'sm:grid-cols-3'}`}>
       <label className="block">
-        <span className="mb-1 block text-sm font-medium text-slate-600">Tarih</span>
+        <span className="mb-1 block text-sm font-medium text-slate-600">{t('Tarih', 'Date')}</span>
         <input type="date" className={inputClass} value={value.date} max={today()} onChange={set('date')} />
       </label>
 
       {amountMode ? (
         <label className="block">
-          <span className="mb-1 block text-sm font-medium text-slate-600">Tutar (₺)</span>
-          <input className={`${inputClass} ${blur}`} value={value.quantity} onChange={set('quantity')} placeholder="ör. 100.000" inputMode="decimal" />
+          <span className="mb-1 block text-sm font-medium text-slate-600">{t('Tutar', 'Amount')} (₺)</span>
+          <input
+            className={`${inputClass} ${blur}`}
+            value={value.quantity}
+            onChange={set('quantity')}
+            placeholder={t('ör. 100.000', 'e.g. 100,000')}
+            inputMode="decimal"
+          />
         </label>
       ) : (
         <>
           <label className="block">
-            <span className="mb-1 block text-sm font-medium text-slate-600">Miktar ({type.unit})</span>
-            <input className={`${inputClass} ${blur}`} value={value.quantity} onChange={set('quantity')} placeholder="ör. 250" inputMode="decimal" />
+            <span className="mb-1 block text-sm font-medium text-slate-600">
+              {t('Miktar', 'Quantity')} ({type.unit})
+            </span>
+            <input
+              className={`${inputClass} ${blur}`}
+              value={value.quantity}
+              onChange={set('quantity')}
+              placeholder={t('ör. 250', 'e.g. 250')}
+              inputMode="decimal"
+            />
           </label>
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-slate-600">{type.priceLabel} (₺)</span>
-            <input className={inputClass} value={value.price} onChange={set('price')} placeholder="ör. 312,50" inputMode="decimal" />
-            {total !== null && <span className="mt-1 block text-xs text-slate-500">Toplam: {formatTL(total)}</span>}
+            <input
+              className={inputClass}
+              value={value.price}
+              onChange={set('price')}
+              placeholder={t('ör. 312,50', 'e.g. 312.50')}
+              inputMode="decimal"
+            />
+            {total !== null && (
+              <span className="mt-1 block text-xs text-slate-500">
+                {t('Toplam', 'Total')}: {formatTL(total)}
+              </span>
+            )}
           </label>
         </>
       )}

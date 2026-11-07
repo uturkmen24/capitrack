@@ -9,6 +9,15 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <title>CapiTrack</title>
+    <!-- Sayfa çizilmeden önce kayıtlı temayı ve dili uygula; karanlık temada açılışta bir an beyaz ekran görünmesin -->
+    <script>
+      try {
+        var theme = JSON.parse(localStorage.getItem('capitrack:theme'))
+        if (theme === 'dark' || (theme == null && matchMedia('(prefers-color-scheme: dark)').matches))
+          document.documentElement.classList.add('dark')
+        if (JSON.parse(localStorage.getItem('capitrack:lang')) === 'en') document.documentElement.lang = 'en'
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

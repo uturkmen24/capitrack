@@ -16,6 +16,7 @@ import {
   parseAmount,
   shiftMonth,
 } from '../lib/format'
+import { t } from '../lib/i18n'
 import { usePref } from '../lib/prefs'
 
 const inputClass =
@@ -31,15 +32,18 @@ export default function MonthlyUpdate({ portfolio, goToAssets }) {
   if (data.transactions.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
-        <p className="font-medium">Önce bir alış eklemelisin</p>
+        <p className="font-medium">{t('Önce bir alış eklemelisin', 'Add a purchase first')}</p>
         <p className="mt-1 text-sm text-slate-500">
-          Aylık fiyat girebilmek için Varlıklarım ekranında en az bir varlığın ve alış işleminin olması gerekiyor.
+          {t(
+            'Aylık fiyat girebilmek için Varlıklarım ekranında en az bir varlığın ve alış işleminin olması gerekiyor.',
+            'To enter monthly prices you need at least one asset with a purchase on the My Assets screen.',
+          )}
         </p>
         <button
           onClick={goToAssets}
           className="mt-4 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
         >
-          Varlıklarıma git
+          {t('Varlıklarıma git', 'Go to My Assets')}
         </button>
       </div>
     )
@@ -49,9 +53,12 @@ export default function MonthlyUpdate({ portfolio, goToAssets }) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-semibold">Aylık Güncelleme</h2>
+          <h2 className="text-xl font-semibold">{t('Aylık Güncelleme', 'Monthly Update')}</h2>
           <p className="text-sm text-slate-500">
-            Her varlığın ay sonundaki birim fiyatını (mevduatta bakiyesini) yaz. Adetler alış/satış işlemlerinden gelir.
+            {t(
+              'Her varlığın ay sonundaki birim fiyatını (mevduatta bakiyesini) yaz. Adetler alış/satış işlemlerinden gelir.',
+              'Enter each asset’s month-end unit price (the balance for deposits). Quantities come from your buy/sell transactions.',
+            )}
           </p>
         </div>
 
@@ -60,7 +67,7 @@ export default function MonthlyUpdate({ portfolio, goToAssets }) {
           <button
             onClick={() => setMonth(shiftMonth(month, -1))}
             className="rounded-lg px-3 py-1.5 text-slate-600 hover:bg-slate-100"
-            aria-label="Önceki ay"
+            aria-label={t('Önceki ay', 'Previous month')}
           >
             ‹
           </button>
@@ -69,7 +76,7 @@ export default function MonthlyUpdate({ portfolio, goToAssets }) {
             onClick={() => setMonth(shiftMonth(month, 1))}
             disabled={isCurrent}
             className="rounded-lg px-3 py-1.5 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent"
-            aria-label="Sonraki ay"
+            aria-label={t('Sonraki ay', 'Next month')}
           >
             ›
           </button>
@@ -122,17 +129,20 @@ function MonthForm({ month, data, onSave }) {
   function handleSubmit(e) {
     e.preventDefault()
     if (invalid) {
-      setMessage({ ok: false, text: 'Kırmızı işaretli alanlara geçerli bir sayı yaz.' })
+      setMessage({ ok: false, text: t('Kırmızı işaretli alanlara geçerli bir sayı yaz.', 'Enter a valid number in the fields marked red.') })
       return
     }
     onSave(month, parsed)
-    setMessage({ ok: true, text: `${formatMonth(month)} kaydedildi.` })
+    setMessage({ ok: true, text: t(`${formatMonth(month)} kaydedildi.`, `${formatMonth(month)} saved.`) })
   }
 
   if (rows.length === 0) {
     return (
       <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500">
-        {formatMonth(month)} ayında elinde bir varlık görünmüyor (henüz alınmamış veya tamamen satılmış).
+        {t(
+          `${formatMonth(month)} ayında elinde bir varlık görünmüyor (henüz alınmamış veya tamamen satılmış).`,
+          `You don’t seem to hold any assets in ${formatMonth(month)} (not bought yet or fully sold).`,
+        )}
       </p>
     )
   }
@@ -162,7 +172,10 @@ function MonthForm({ month, data, onSave }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       {!hasSavedPrices && (
         <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Bu ay için henüz fiyat girilmedi. Alanlar son bilinen fiyatlarla dolduruldu; değişenleri düzeltip kaydet.
+          {t(
+            'Bu ay için henüz fiyat girilmedi. Alanlar son bilinen fiyatlarla dolduruldu; değişenleri düzeltip kaydet.',
+            'No prices entered for this month yet. Fields are filled with the last known prices; update what changed and save.',
+          )}
         </p>
       )}
 
@@ -184,23 +197,29 @@ function MonthForm({ month, data, onSave }) {
 
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
         <div>
-          <p className="text-sm text-slate-500">{formatMonth(month)} toplamı</p>
+          <p className="text-sm text-slate-500">{t(`${formatMonth(month)} toplamı`, `${formatMonth(month)} total`)}</p>
           <p className="text-2xl font-bold tabular-nums">{formatTL(total)}</p>
           {prevTotal > 0 && (
             <p className={`text-sm font-medium tabular-nums ${monthReturn >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
-              {monthReturn >= 0 ? '▲' : '▼'} Bu ayki getiri: {formatSignedTL(monthReturn)} ({formatPercent(monthReturn / prevTotal)})
+              {monthReturn >= 0 ? '▲' : '▼'} {t('Bu ayki getiri', 'This month’s return')}: {formatSignedTL(monthReturn)} (
+              {formatPercent(monthReturn / prevTotal)})
             </p>
           )}
           {Math.abs(flow) > 0.5 && (
             <p className="text-xs text-slate-500">
-              Bu ay {flow > 0 ? 'eklenen' : 'çekilen'} para: {formatTL(Math.abs(flow))} (getiriye dahil değil)
+              {flow > 0
+                ? t(`Bu ay eklenen para: ${formatTL(flow)} (getiriye dahil değil)`, `Money added this month: ${formatTL(flow)} (not counted as return)`)
+                : t(
+                    `Bu ay çekilen para: ${formatTL(-flow)} (getiriye dahil değil)`,
+                    `Money withdrawn this month: ${formatTL(-flow)} (not counted as return)`,
+                  )}
             </p>
           )}
         </div>
         <div className="flex items-center gap-3">
           {message && <span className={`text-sm ${message.ok ? 'text-emerald-700' : 'text-red-600'}`}>{message.text}</span>}
           <button type="submit" className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-700">
-            Kaydet
+            {t('Kaydet', 'Save')}
           </button>
         </div>
       </div>
@@ -230,14 +249,17 @@ function MonthRow({ row, showType, input, parsedValue, value, onChange }) {
         <p className="truncate text-xs text-slate-500">
           {asset.institution || '—'}
           {priceChange !== null && Math.abs(priceChange) > 0.0005 && (
-            <span className={priceChange > 0 ? 'text-emerald-700' : 'text-red-600'}> · fiyat {formatPercent(priceChange)}</span>
+            <span className={priceChange > 0 ? 'text-emerald-700' : 'text-red-600'}>
+              {' '}
+              · {t('fiyat', 'price')} {formatPercent(priceChange)}
+            </span>
           )}
         </p>
       </div>
 
       <div className="order-3 col-span-2 flex items-center gap-2 text-sm sm:order-2 sm:col-span-1 sm:justify-end">
         <span className="whitespace-nowrap tabular-nums text-slate-500">
-          {amountMode ? 'Bakiye' : `${formatQty(state.qty)} ${type.unit} ×`}
+          {amountMode ? t('Bakiye', 'Balance') : `${formatQty(state.qty)} ${type.unit} ×`}
         </span>
         <input
           className={`${inputClass} ${bad ? 'border-red-400 ring-2 ring-red-400/20' : ''} ${amountMode ? blur : ''}`}
@@ -245,7 +267,7 @@ function MonthRow({ row, showType, input, parsedValue, value, onChange }) {
           onChange={(e) => onChange(e.target.value)}
           placeholder="—"
           inputMode="decimal"
-          aria-label={`${asset.name} ${amountMode ? 'bakiyesi' : type.priceLabel.toLowerCase()}`}
+          aria-label={`${asset.name} ${amountMode ? t('bakiyesi', 'balance') : type.priceLabel.toLowerCase()}`}
         />
       </div>
 

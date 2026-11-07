@@ -1,6 +1,8 @@
 // Verinin tarayıcıya (LocalStorage) kaydedilip geri okunması.
 // LocalStorage sadece yazı (string) saklar; bu yüzden veriyi JSON yazısına çevirip saklıyoruz.
 
+import { t } from './i18n'
+
 const KEY = 'capitrack:data'
 const OLD_BACKUP_KEY = 'capitrack:data:v1-yedek'
 export const DATA_VERSION = 2
@@ -60,11 +62,16 @@ const positive = (n) => Number.isFinite(n) && n > 0
  */
 export function validateData(input) {
   if (!input || typeof input !== 'object' || !Array.isArray(input.assets)) {
-    throw new Error('Bu dosya bir CapiTrack yedeği değil ("assets" listesi bulunamadı).')
+    throw new Error(
+      t('Bu dosya bir CapiTrack yedeği değil ("assets" listesi bulunamadı).', 'This file is not a CapiTrack backup (no "assets" list found).'),
+    )
   }
   if (input.version !== DATA_VERSION) {
     throw new Error(
-      'Bu yedek CapiTrack’in eski sürümüne ait; içinde adet ve alış maliyeti bilgisi yok. Yeni sürümde varlıkları alış işlemleriyle yeniden eklemen gerekiyor.',
+      t(
+        'Bu yedek CapiTrack’in eski sürümüne ait; içinde adet ve alış maliyeti bilgisi yok. Yeni sürümde varlıkları alış işlemleriyle yeniden eklemen gerekiyor.',
+        'This backup is from an older version of CapiTrack and has no quantity or purchase cost data. Please add your assets again with their purchases.',
+      ),
     )
   }
 

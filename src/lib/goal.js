@@ -11,6 +11,8 @@
 //
 //   n = ln((Hedef·r + C) / (P·r + C)) / ln(1+r)
 
+import { t } from './i18n'
+
 /** Yıllık oranı aylığa çevirir: %10 yıllık → yaklaşık %0,797 aylık (basitçe 10/12 değil!) */
 export function monthlyRate(annual) {
   return Math.pow(1 + annual, 1 / 12) - 1
@@ -36,9 +38,11 @@ export function futureValue(current, monthly, annualReturn, n) {
   return current * g + (monthly * (g - 1)) / r
 }
 
-/** 62 → "5 yıl 2 ay", 8 → "8 ay", 24 → "2 yıl" */
+/** 62 → "5 yıl 2 ay" (İng. "5 years 2 months"), 8 → "8 ay", 24 → "2 yıl" */
 export function formatDuration(months) {
   const y = Math.floor(months / 12)
   const m = months % 12
-  return [y && `${y} yıl`, m && `${m} ay`].filter(Boolean).join(' ') || '0 ay'
+  const years = (n) => t(`${n} yıl`, `${n} ${n === 1 ? 'year' : 'years'}`)
+  const mons = (n) => t(`${n} ay`, `${n} ${n === 1 ? 'month' : 'months'}`)
+  return [y && years(y), m && mons(m)].filter(Boolean).join(' ') || mons(0)
 }
