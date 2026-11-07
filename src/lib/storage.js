@@ -89,16 +89,16 @@ export function validateData(input) {
 
   const transactions = (Array.isArray(input.transactions) ? input.transactions : [])
     .filter(
-      (t) =>
-        t &&
-        typeof t.id === 'string' &&
-        ids.has(t.assetId) &&
-        isDate(t.date) &&
-        (t.kind === 'buy' || t.kind === 'sell') &&
-        positive(t.quantity) &&
-        positive(t.price),
+      (x) =>
+        x &&
+        typeof x.id === 'string' &&
+        ids.has(x.assetId) &&
+        isDate(x.date) &&
+        (x.kind === 'buy' || x.kind === 'sell') &&
+        positive(x.quantity) &&
+        positive(x.price),
     )
-    .map((t) => ({ id: t.id, assetId: t.assetId, date: t.date, kind: t.kind, quantity: t.quantity, price: t.price }))
+    .map((x) => ({ id: x.id, assetId: x.assetId, date: x.date, kind: x.kind, quantity: x.quantity, price: x.price }))
 
   const prices = {}
   for (const [month, row] of Object.entries(input.prices ?? {})) {

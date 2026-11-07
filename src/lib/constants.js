@@ -48,7 +48,7 @@ export const ASSET_TYPES = [
 ]
 
 export function getType(id) {
-  return ASSET_TYPES.find((t) => t.id === id) ?? ASSET_TYPES[ASSET_TYPES.length - 1]
+  return ASSET_TYPES.find((x) => x.id === id) ?? ASSET_TYPES[ASSET_TYPES.length - 1]
 }
 
 /** Varlıkları türe göre gruplar; gruplar her zaman aynı sırada (Altın, Hisse, ETF…) gelir. */

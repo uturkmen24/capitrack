@@ -49,7 +49,7 @@ export default function TypeDistribution({ rows, subtitle, className }) {
 
       <ul className="mt-4 space-y-0.5" onMouseLeave={() => setActiveKey(null)}>
         {rows.map((r) => {
-          const t = getType(r.key)
+          const ty = getType(r.key)
           return (
             <li
               key={r.key}
@@ -58,8 +58,8 @@ export default function TypeDistribution({ rows, subtitle, className }) {
                 activeKey === r.key ? 'bg-slate-100' : ''
               }`}
             >
-              <span className="h-3 w-3 shrink-0 rounded-sm" style={{ background: t.color }} />
-              <span className="flex-1">{t.label}</span>
+              <span className="h-3 w-3 shrink-0 rounded-sm" style={{ background: ty.color }} />
+              <span className="flex-1">{ty.label}</span>
               <span className="tabular-nums text-slate-600">{formatTL(r.value)}</span>
               <span className="w-14 text-right font-medium tabular-nums">{formatShare(r.share)}</span>
             </li>
@@ -75,12 +75,12 @@ function SegmentedBar({ rows }) {
   return (
     <div className="flex h-3 gap-[2px] overflow-hidden rounded-full" role="img" aria-label={t('Türe göre dağılım çubuğu', 'Allocation by type bar')}>
       {rows.map((r) => {
-        const t = getType(r.key)
+        const ty = getType(r.key)
         return (
           <div
             key={r.key}
-            style={{ width: `${r.share * 100}%`, background: t.color }}
-            title={`${t.label}: ${formatTL(r.value)} (${formatShare(r.share)})`}
+            style={{ width: `${r.share * 100}%`, background: ty.color }}
+            title={`${ty.label}: ${formatTL(r.value)} (${formatShare(r.share)})`}
             className="min-w-[3px] transition-opacity hover:opacity-80"
           />
         )
@@ -94,7 +94,7 @@ function SegmentedBar({ rows }) {
 // gelince (telefonda dokununca) o türün adı, tutarı ve yüzdesi yazar. Böylece yazılar asla üst üste binmez.
 function Donut({ rows, total, activeKey, onActive }) {
   const active = rows.find((r) => r.key === activeKey)
-  const t = active && getType(active.key)
+  const ty = active && getType(active.key)
 
   return (
     <div className="relative h-52" onMouseLeave={() => onActive(null)}>
@@ -132,8 +132,8 @@ function Donut({ rows, total, activeKey, onActive }) {
         {active ? (
           <>
             <span className="flex items-center gap-1.5 text-xs text-slate-500">
-              <span className="h-2.5 w-2.5 rounded-sm" style={{ background: t.color }} />
-              {t.label}
+              <span className="h-2.5 w-2.5 rounded-sm" style={{ background: ty.color }} />
+              {ty.label}
             </span>
             <span className="text-lg font-bold tabular-nums">{formatTL(active.value)}</span>
             <span className="text-xs font-medium tabular-nums text-slate-600">{formatShare(active.share)}</span>
