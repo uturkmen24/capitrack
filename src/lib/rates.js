@@ -43,7 +43,12 @@ async function fetchLatestFallback(signal) {
 
 function readCache() {
   try {
-    return JSON.parse(localStorage.getItem(KEY))
+    const cached = JSON.parse(localStorage.getItem(KEY))
+    if (cached) return cached
+    // Kur geçmişi henüz hiç alınmadıysa (ör. ilk dolarlı varlık az önce eklendi), toplam varlık kartının sakladığı
+    // güncel dolar kuruyla başla; geçmiş birkaç saniye içinde gelir. Böylece arada yanlış değer görünmez.
+    const usd = JSON.parse(localStorage.getItem('capitrack:usdtry'))
+    return usd?.rate ? { months: {}, latest: { USD: usd.rate, date: usd.date }, start: '9999-12', fetchedAt: 0 } : null
   } catch {
     return null
   }
@@ -84,6 +89,32 @@ export function useFxRates(raw) {
   }, [needed, start])
 
   return needed ? rates : null
+}
+
+/**
+ * Bir varlığın para birimini değiştirirken gereken kurlar: verilen günden bugüne günlük kur listesi (tek istek).
+ * Dönen fonksiyon rateOn(currency, "2026-06-10") o günün ya da öncesindeki son iş gününün kurunu verir.
+ */
+export async function fetchRateLookup(currencies, fromDate) {
+  const series = {}
+  for (const cur of currencies.filter((c) => c !== 'TRY')) {
+    const res = await fetch(`${API}/${fromDate}..?from=${cur}&to=TRY`)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const json = await res.json()
+    series[cur] = Object.keys(json.rates)
+      .sort()
+      .map((d) => [d, json.rates[d].TRY])
+    if (!series[cur].length) throw new Error('kur yok')
+  }
+  return (cur, date) => {
+    const list = series[cur]
+    let found = list[0][1] // ilk iş gününden önceki bir tarih (ör. 1 Ocak tatili): ilk bilinen kur
+    for (const [d, r] of list) {
+      if (d > date) break
+      found = r
+    }
+    return found
+  }
 }
 
 // Belirli bir günün kuru (işlem formu için). Aynı gün/döviz için tekrar istek atılmasın diye hafızada tutulur.

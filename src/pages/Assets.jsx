@@ -7,7 +7,8 @@ import TransactionList from '../components/TransactionList'
 import TypeBadge from '../components/TypeBadge'
 import { assetStateAt, checkTransactions } from '../lib/analytics'
 import { getType, splitByType } from '../lib/constants'
-import { assetCurrency, isCurrencyAsset, lastRawPrice } from '../lib/currency'
+import { assetCurrency, convertAssetCurrency, isCurrencyAsset, lastRawPrice } from '../lib/currency'
+import { fetchRateLookup } from '../lib/rates'
 import { currentMonth, formatPrice, formatPriceIn, formatQty, formatSignedTL, formatTL } from '../lib/format'
 import { t } from '../lib/i18n'
 import { usePref } from '../lib/prefs'
@@ -18,7 +19,7 @@ const btn = 'rounded-lg px-3 py-1.5 text-sm hover:bg-slate-100'
 // değeri ve kâr/zararı görünür. Al / Sat, işlem geçmişi, düzenleme ve silme buradan yapılır.
 // data: TL'ye çevrilmiş veri (hesaplar için), raw: kaydedildiği hâli (döviz fiyatları kendi para birimiyle).
 export default function Assets({ portfolio }) {
-  const { data, raw, addAsset, updateAsset, deleteAsset, addTransaction, deleteTransaction } = portfolio
+  const { data, raw, addAsset, updateAsset, deleteAsset, addTransaction, deleteTransaction, replaceData } = portfolio
   const [adding, setAdding] = useState(false)
   // Hangi varlığın altında hangi panel açık: { id, kind: 'trade' | 'history' | 'edit' }
   const [panel, setPanel] = useState(null)
@@ -58,6 +59,34 @@ export default function Assets({ portfolio }) {
       )
     )
       deleteTransaction(tx.id)
+  }
+
+  // Varlığı düzenle. İşlemi olan (döviz hesabı olmayan) varlığın para birimi değiştiyse, kayıtlı fiyatlar
+  // kurla yeni para birimine çevrilir: işlemler kendi tarihlerindeki kurla, aylık fiyatlar ay sonu kuruyla.
+  async function handleEdit(asset, fields, hasTx) {
+    const from = assetCurrency(asset)
+    const to = fields.currency
+    if (from === to || !hasTx || asset.type === 'doviz' || fields.type === 'doviz') {
+      updateAsset(asset.id, fields)
+      setPanel(null)
+      return null
+    }
+    const dates = [
+      ...raw.transactions.filter((x) => x.assetId === asset.id).map((x) => x.date),
+      ...Object.keys(raw.prices).filter((m) => raw.prices[m][asset.id] != null).map((m) => `${m}-01`),
+    ].sort()
+    try {
+      const rateOn = await fetchRateLookup([from, to], dates[0])
+      const converted = convertAssetCurrency(raw, asset.id, from, to, rateOn)
+      replaceData({ ...converted, assets: converted.assets.map((a) => (a.id === asset.id ? { ...a, ...fields } : a)) })
+      setPanel(null)
+      return null
+    } catch {
+      return t(
+        'Kurlar alınamadı, para birimi değiştirilemedi. İnternet bağlantını kontrol edip tekrar dene.',
+        'Could not fetch exchange rates, so the currency was not changed. Check your connection and try again.',
+      )
+    }
   }
 
   function handleDelete(asset) {
@@ -175,13 +204,12 @@ export default function Assets({ portfolio }) {
               key={asset.id}
               asset={asset}
               lockedMode={hasTx ? getType(asset.type).mode : null}
-              // Eski (para birimi kaydedilmemiş) döviz hesabının işlemleri zaten kur olduğundan para birimi seçilebilir
-              currencyLocked={hasTx && !(asset.type === 'doviz' && !asset.currency)}
+              // Döviz hesabının para birimi işlemleri varken değişmez (fiyatı kurdur). Tek istisna: para birimi
+              // hiç kaydedilmemiş eski döviz hesabı (dolar sayılıyor; euro ise düzeltilebilsin diye).
+              currencyLocked={hasTx && asset.type === 'doviz' && Boolean(asset.currency)}
+              hasTransactions={hasTx}
               institutions={institutions}
-              onSave={(fields) => {
-                updateAsset(asset.id, fields)
-                setPanel(null)
-              }}
+              onSave={(fields) => handleEdit(asset, fields, hasTx)}
               onCancel={() => setPanel(null)}
             />
           </div>

@@ -106,6 +106,43 @@ export function normalize(data, rates) {
 }
 
 /**
+ * İşlemi olan bir varlığın fiyat para birimini değiştirir (ör. TL girilmiş ETF → dolar).
+ * rateOn(currency, "2026-06-10"): o günün (ya da öncesindeki son iş gününün) kuru, 1 birim = ₺x.
+ *   İşlemler: her biri kendi tarihindeki kurla çevrilir. TL maliyet aynen korunur (fiyat × kur = eski TL fiyatı).
+ *   Aylık fiyatlar: o ayın son kuruyla çevrilir.
+ * Döviz hesapları (fiyatı zaten kur olan) bu yolla çevrilmez.
+ */
+export function convertAssetCurrency(raw, assetId, from, to, rateOn) {
+  if (from === to) return raw
+  // Sente yuvarla ($759,36); 1'in altındaki çok küçük fiyatlarda (kripto) 6 anlamlı basamak kalsın
+  const round4 = (n) => (n >= 1 ? Math.round(n * 100) / 100 : Number(n.toPrecision(6)))
+  const toTL = (price, date, fx) => (from === 'TRY' ? price : price * (fx ?? rateOn(from, date)))
+
+  const transactions = raw.transactions.map((x) => {
+    if (x.assetId !== assetId) return x
+    const tl = toTL(x.price, x.date, x.fx)
+    const { fx: _old, ...rest } = x
+    if (to === 'TRY') return { ...rest, price: tl }
+    const price = round4(tl / rateOn(to, x.date))
+    return { ...rest, price, fx: tl / price } // kur, yuvarlanmış fiyatla çarpınca TL maliyeti tam tutacak şekilde
+  })
+
+  const prices = {}
+  for (const [m, row] of Object.entries(raw.prices)) {
+    if (row[assetId] == null) {
+      prices[m] = row
+      continue
+    }
+    const monthEnd = `${m}-31` // "o ayın son günü veya öncesindeki son kur"
+    const tl = from === 'TRY' ? row[assetId] : row[assetId] * rateOn(from, monthEnd)
+    prices[m] = { ...row, [assetId]: to === 'TRY' ? tl : round4(tl / rateOn(to, monthEnd)) }
+  }
+
+  const assets = raw.assets.map((a) => (a.id === assetId ? { ...a, currency: to } : a))
+  return { ...raw, assets, transactions, prices }
+}
+
+/**
  * Döviz cinsinden varlığın o aya kadarki son fiyatı, kendi para birimiyle ($545).
  * Formları doldurmak için: önce girilmiş aylık fiyat, yoksa son işlem fiyatı.
  */

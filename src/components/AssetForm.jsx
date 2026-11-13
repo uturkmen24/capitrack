@@ -17,8 +17,10 @@ const currencyName = (c) =>
 // Varlık ekleme ve düzenleme formu. "asset" verilirse düzenleme modunda açılır.
 // Yeni varlık eklerken isteğe bağlı olarak ilk alış da girilir (maliyet hesabı buradan başlar).
 // lockedMode: varlığın işlemleri varsa, takip şekli farklı bir türe (ör. hisse → mevduat) geçilemez.
-// currencyLocked: işlemi olan varlığın fiyat para birimi değiştirilemez (kayıtlı fiyatların anlamı değişirdi).
-export default function AssetForm({ asset, lockedMode, currencyLocked, institutions, onSave, onCancel }) {
+// currencyLocked: para birimi değiştirilemez (işlemi olan döviz hesabı).
+// hasTransactions: işlemi olan varlıkta para birimi değişirse geçmiş fiyatlar kurla çevrilir (kaydederken, biraz sürebilir).
+// onSave hata metni (veya onu veren bir Promise) dönebilir; form o zaman açık kalır ve hatayı gösterir.
+export default function AssetForm({ asset, lockedMode, currencyLocked, hasTransactions, institutions, onSave, onCancel }) {
   const [name, setName] = useState(asset?.name ?? '')
   const [type, setType] = useState(asset?.type ?? 'hisse')
   const [currency, setCurrency] = useState(asset ? assetCurrency(asset) : defaultCurrency('hisse'))
@@ -26,7 +28,11 @@ export default function AssetForm({ asset, lockedMode, currencyLocked, instituti
   const [note, setNote] = useState(asset?.note ?? '')
   const [trade, setTrade] = useState(emptyTrade())
   const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
   const typeInfo = getType(type)
+  const converts = Boolean(
+    asset && hasTransactions && typeInfo.mode === 'unit' && type !== 'doviz' && asset.type !== 'doviz' && currency !== assetCurrency(asset),
+  )
   const isCurrencyType = type === 'doviz'
   // İşlemi olan varlık: aynı şekilde takip edilen türler arasında ve döviz hesabı ↔ diğerleri arasında geçilemez
   // (döviz hesabının işlemlerinde fiyat yerine kur tutulur).
@@ -40,7 +46,7 @@ export default function AssetForm({ asset, lockedMode, currencyLocked, instituti
     if (!currencyLocked) setCurrency(defaultCurrency(next))
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault() // tarayıcının sayfayı yenilemesini engelle
     if (!name.trim()) return setError(t('Lütfen varlığa bir ad ver.', 'Please give the asset a name.'))
     const cur = typeInfo.mode === 'amount' ? 'TRY' : currency
@@ -50,7 +56,10 @@ export default function AssetForm({ asset, lockedMode, currencyLocked, instituti
       if (r.error) return setError(r.error)
       firstTx = r.tx
     }
-    onSave({ name: name.trim(), type, currency: cur, institution: institution.trim(), note: note.trim() }, firstTx)
+    setSaving(true)
+    const problem = await onSave({ name: name.trim(), type, currency: cur, institution: institution.trim(), note: note.trim() }, firstTx)
+    setSaving(false)
+    if (typeof problem === 'string') setError(problem)
   }
 
   return (
@@ -108,6 +117,14 @@ export default function AssetForm({ asset, lockedMode, currencyLocked, instituti
                   : t('Fiyatlar TL olarak girilir.', 'Prices are entered in lira.')}
               {currencyLocked && ` ${t('İşlemi olduğu için değiştirilemez.', 'Locked because the asset has transactions.')}`}
             </span>
+            {converts && (
+              <span className="mt-2 block rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                {t(
+                  `Kaydedince geçmiş işlemlerin kendi tarihlerindeki kurla, aylık fiyatların ay sonu kuruyla ${currency} cinsine çevrilir. TL maliyetin değişmez.`,
+                  `On save, past transactions are converted to ${currency} with the rate of their own date, and monthly prices with the month-end rate. Your lira cost stays the same.`,
+                )}
+              </span>
+            )}
           </label>
         )}
 
@@ -172,9 +189,10 @@ export default function AssetForm({ asset, lockedMode, currencyLocked, instituti
         </button>
         <button
           type="submit"
-          className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+          disabled={saving}
+          className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
         >
-          {t('Kaydet', 'Save')}
+          {saving ? t('Kurlar alınıyor…', 'Fetching rates…') : t('Kaydet', 'Save')}
         </button>
       </div>
     </form>
