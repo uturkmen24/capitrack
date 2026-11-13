@@ -1,6 +1,7 @@
 // Verinin tarayıcıya (LocalStorage) kaydedilip geri okunması.
 // LocalStorage sadece yazı (string) saklar; bu yüzden veriyi JSON yazısına çevirip saklıyoruz.
 
+import { CURRENCIES } from './currency'
 import { t } from './i18n'
 
 const KEY = 'capitrack:data'
@@ -11,10 +12,12 @@ export const DATA_VERSION = 2
  * Verinin şekli (sürüm 2):
  * {
  *   version: 2,
- *   assets:       [{ id, name, type, institution, note, createdAt }],
- *   transactions: [{ id, assetId, date: "2026-11-05", kind: "buy" | "sell", quantity, price }],
+ *   assets:       [{ id, name, type, institution, note, createdAt, currency? }],
+ *                 (currency: fiyatın para birimi, "TRY" | "USD" | "EUR" | "GBP"; yoksa TL)
+ *   transactions: [{ id, assetId, date: "2026-11-05", kind: "buy" | "sell", quantity, price, fx? }],
+ *                 (döviz cinsinden varlıkta price kendi para birimiyle, fx = o günün kuru; döviz hesabında price = 1)
  *                 (mevduat gibi tutarla takip edilenlerde quantity = tutar, price = 1)
- *   prices:       { "2026-11": { "<varlık id>": 312.5 } }
+ *   prices:       { "2026-11": { "<varlık id>": 312.5 } }   (döviz cinsinden varlıkta kendi para birimiyle)
  *                 (ay sonu birim fiyatı; mevduatta o ayın bakiyesi)
  *   goal:         { name, target, monthly, annualReturn } | null
  * }
@@ -84,6 +87,8 @@ export function validateData(input) {
       institution: typeof a.institution === 'string' ? a.institution : '',
       note: typeof a.note === 'string' ? a.note : '',
       createdAt: typeof a.createdAt === 'string' ? a.createdAt : new Date().toISOString(),
+      // Fiyat para birimi (yoksa eski davranış: TL; döviz hesabında dolar). Bkz. currency.js
+      ...(CURRENCIES.includes(a.currency) ? { currency: a.currency } : {}),
     }))
   const ids = new Set(assets.map((a) => a.id))
 
@@ -98,7 +103,15 @@ export function validateData(input) {
         positive(x.quantity) &&
         positive(x.price),
     )
-    .map((x) => ({ id: x.id, assetId: x.assetId, date: x.date, kind: x.kind, quantity: x.quantity, price: x.price }))
+    .map((x) => ({
+      id: x.id,
+      assetId: x.assetId,
+      date: x.date,
+      kind: x.kind,
+      quantity: x.quantity,
+      price: x.price,
+      ...(positive(x.fx) ? { fx: x.fx } : {}), // döviz cinsinden işlemde o günün kuru (1 birim = ₺fx)
+    }))
 
   const prices = {}
   for (const [month, row] of Object.entries(input.prices ?? {})) {

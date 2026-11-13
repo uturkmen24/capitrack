@@ -3,6 +3,7 @@
 
 import { assetStateAt } from './analytics'
 import { getType, groupByType } from './constants'
+import { assetCurrency, isCurrencyAsset } from './currency'
 import { t } from './i18n'
 
 export const STEP_OPTIONS = [2, 3, 4, 6, 12]
@@ -29,6 +30,7 @@ export function rebalanceRows(data, by, month) {
         amountMode: type.mode === 'amount',
         price: type.mode === 'unit' && state.price > 0 ? state.price : null,
         unit: type.unit,
+        unitCode: isCurrencyAsset(asset) ? assetCurrency(asset) : null, // döviz hesabında birim para birimidir (USD)
         note: type.label,
       }))
       .sort((a, b) => b.value - a.value)
@@ -45,6 +47,7 @@ export function rebalanceRows(data, by, month) {
       amountMode: type.mode === 'amount',
       price: single && type.mode === 'unit' && single.state.price > 0 ? single.state.price : null,
       unit: type.unit,
+      unitCode: single && isCurrencyAsset(single.asset) ? assetCurrency(single.asset) : null,
       note: single ? single.asset.name : t(`${items.length} varlık`, `${items.length} assets`),
     }
   })
@@ -115,6 +118,7 @@ export function buildPlan(rows, targets, steps) {
       color: r.color,
       amountMode: r.amountMode,
       unit: r.unit,
+      unitCode: r.unitCode ?? null,
       current: r.value,
       targetPct,
       delta,

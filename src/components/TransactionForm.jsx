@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import TradeFields from './TradeFields'
 import { getType } from '../lib/constants'
+import { assetCurrency, isCurrencyAsset } from '../lib/currency'
 import { formatPrice, formatQty, formatSignedTL, formatTL, parseAmount } from '../lib/format'
 import { t } from '../lib/i18n'
 import { emptyTrade, readTrade } from '../lib/trade'
@@ -8,11 +9,14 @@ import { emptyTrade, readTrade } from '../lib/trade'
 // "Al / Sat" (mevduatta "Yatır / Çek") formu.
 // state: varlığın bugünkü durumu (adet, ortalama maliyet, son fiyat…)
 // onSubmit(tx): işlemi kaydeder; sorun varsa (ör. elde olandan fazla satış) hata metni döner.
-export default function TransactionForm({ asset, state, onSubmit, onCancel }) {
+// rawPrice: döviz cinsinden varlıkta son fiyat kendi para birimiyle (form bununla dolu gelir).
+export default function TransactionForm({ asset, state, rawPrice, onSubmit, onCancel }) {
   const type = getType(asset.type)
   const amountMode = type.mode === 'amount'
+  const currency = amountMode ? 'TRY' : assetCurrency(asset)
+  const currencyAsset = isCurrencyAsset(asset)
   const [kind, setKind] = useState('buy')
-  const [trade, setTrade] = useState(emptyTrade(amountMode ? null : state?.price))
+  const [trade, setTrade] = useState(emptyTrade(amountMode || currencyAsset ? null : currency === 'TRY' ? state?.price : rawPrice))
   const [error, setError] = useState('')
   const labels = amountMode
     ? { buy: t('Para yatır', 'Deposit'), sell: t('Para çek', 'Withdraw') }
@@ -22,13 +26,15 @@ export default function TransactionForm({ asset, state, onSubmit, onCancel }) {
     : { buy: t('Alış kaydet', 'Save purchase'), sell: t('Satış kaydet', 'Save sale') }
 
   // Satışta tahmini gerçekleşen kâr/zarar: (satış fiyatı − ortalama maliyet) × adet
+  // Döviz cinsinden varlıkta satış fiyatı önce o günün kuruyla TL'ye çevrilir (ortalama maliyet TL'dir).
   const q = parseAmount(trade.quantity)
-  const p = parseAmount(trade.price)
+  const rate = currency === 'TRY' ? 1 : parseAmount(trade.fxText)
+  const p = (currencyAsset ? 1 : parseAmount(trade.price)) * rate
   const estimate = kind === 'sell' && !amountMode && state?.qty > 0 && q > 0 && p > 0 ? (p - state.avg) * Math.min(q, state.qty) : null
 
   function handleSubmit(e) {
     e.preventDefault()
-    const r = readTrade(trade, kind, amountMode)
+    const r = readTrade(trade, kind, amountMode, { currency, currencyAsset })
     if (r.error) return setError(r.error)
     const problem = onSubmit({ assetId: asset.id, ...r.tx })
     if (problem) setError(problem)
@@ -67,14 +73,14 @@ export default function TransactionForm({ asset, state, onSubmit, onCancel }) {
           <p className="text-xs text-slate-500">
             {amountMode
               ? `${t('Bakiye', 'Balance')}: ${formatTL(state.value)} · ${t('Yatırılan', 'Deposited')}: ${formatTL(state.cost)}`
-              : `${t('Elde', 'Held')}: ${formatQty(state.qty)} ${type.unit} · ${t('Ort. maliyet', 'Avg. cost')}: ${
-                  state.qty > 0 ? formatPrice(state.avg) : '—'
-                }`}
+              : `${t('Elde', 'Held')}: ${formatQty(state.qty)} ${currencyAsset ? currency : type.unit} · ${
+                  currencyAsset ? t('Ort. kur', 'Avg. rate') : t('Ort. maliyet', 'Avg. cost')
+                }: ${state.qty > 0 ? formatPrice(state.avg) : '—'}`}
           </p>
         )}
       </div>
 
-      <TradeFields type={type} value={trade} onChange={setTrade} />
+      <TradeFields type={type} currency={currency} currencyAsset={currencyAsset} value={trade} onChange={setTrade} />
 
       {estimate !== null && (
         <p className="mt-3 text-sm text-slate-600">

@@ -12,14 +12,16 @@ const assets = () => [
   { id: 'demo-thyao', name: 'THYAO', type: 'hisse', institution: 'Garanti BBVA Yatırım', note: t('Türk Hava Yolları', 'Turkish Airlines') },
   { id: 'demo-bimas', name: 'BIMAS', type: 'hisse', institution: 'Garanti BBVA Yatırım', note: t('BİM Mağazalar', 'BIM Stores') },
   { id: 'demo-asels', name: 'ASELS', type: 'hisse', institution: 'Midas', note: 'Aselsan' },
-  { id: 'demo-etf', name: 'S&P 500 ETF', type: 'etf', institution: 'Midas', note: '' },
+  { id: 'demo-etf', name: 'S&P 500 ETF', type: 'etf', currency: 'USD', institution: 'Midas', note: '' },
   { id: 'demo-ppf', name: t('Para Piyasası Fonu', 'Money Market Fund'), type: 'fon', institution: 'İş Bankası', note: '' },
   { id: 'demo-tekfon', name: t('Teknoloji Fonu', 'Technology Fund'), type: 'fon', institution: 'İş Bankası', note: '' },
-  { id: 'demo-usd', name: t('Dolar', 'US Dollar'), type: 'doviz', institution: 'Garanti BBVA', note: t('Döviz hesabı', 'FX account') },
+  { id: 'demo-usd', name: t('Dolar', 'US Dollar'), type: 'doviz', currency: 'USD', institution: 'Garanti BBVA', note: t('Döviz hesabı', 'FX account') },
   { id: 'demo-mevduat', name: t('Vadeli Mevduat', 'Time Deposit'), type: 'mevduat', institution: 'Garanti BBVA', note: t('32 gün vadeli', '32-day term') },
 ]
 
-// [ay sırası (0 = 5 ay önce, 5 = bu ay), gün, varlık, işlem, adet (mevduatta tutar), birim fiyat]
+// [ay sırası (0 = 5 ay önce, 5 = bu ay), gün, varlık, işlem, adet (mevduatta tutar), birim fiyat, kur?]
+// Döviz cinsinden varlıklarda fiyat kendi para birimiyle (ETF: $), sonuncu sayı o günün kuru (1 $ = ₺).
+// Dolar hesabında fiyat 1'dir; değerini her ay canlı / ay sonu kuru belirler.
 const TRANSACTIONS = [
   [0, 3, 'demo-altin', 'buy', 15, 4200],
   [2, 10, 'demo-altin', 'buy', 10, 4390],
@@ -28,11 +30,11 @@ const TRANSACTIONS = [
   [1, 6, 'demo-bimas', 'buy', 80, 520],
   [0, 4, 'demo-asels', 'buy', 500, 150],
   [4, 18, 'demo-asels', 'sell', 100, 185],
-  [0, 5, 'demo-etf', 'buy', 2, 26000],
+  [0, 5, 'demo-etf', 'buy', 2, 545.1, 47.7],
   [0, 2, 'demo-ppf', 'buy', 12000, 2.1],
   [3, 2, 'demo-ppf', 'buy', 3000, 2.21],
   [2, 15, 'demo-tekfon', 'buy', 5000, 3.4],
-  [0, 8, 'demo-usd', 'buy', 1000, 47.6],
+  [0, 8, 'demo-usd', 'buy', 1000, 1, 47.6],
   [0, 1, 'demo-mevduat', 'buy', 100000, 1],
   [3, 1, 'demo-mevduat', 'buy', 20000, 1],
 ]
@@ -43,10 +45,9 @@ const PRICES = {
   'demo-thyao': [282, 290, 287, 298, 305, 312],
   'demo-bimas': [null, 525, 510, 530, 538, 545],
   'demo-asels': [152, 160, 168, 175, 186, 192],
-  'demo-etf': [26200, 26900, 27300, 27100, 27800, 28400],
+  'demo-etf': [548.1, 556.9, 560.6, 550.8, 560.5, 567.4], // dolar
   'demo-ppf': [2.12, 2.15, 2.19, 2.22, 2.26, 2.3],
   'demo-tekfon': [null, null, 3.45, 3.38, 3.6, 3.72],
-  'demo-usd': [47.8, 48.3, 48.7, 49.2, 49.6, 50.05],
   'demo-mevduat': [102800, 105700, 108600, 131800, 135400, 139200],
 }
 
@@ -55,13 +56,14 @@ export function createDemoData() {
   const monthAt = (i) => shiftMonth(now, i - 5)
   const createdAt = new Date().toISOString()
 
-  const transactions = TRANSACTIONS.map(([i, day, assetId, kind, quantity, price], n) => ({
+  const transactions = TRANSACTIONS.map(([i, day, assetId, kind, quantity, price, fx], n) => ({
     id: `demo-tx-${n}`,
     assetId,
     date: `${monthAt(i)}-${String(day).padStart(2, '0')}`,
     kind,
     quantity,
     price,
+    ...(fx ? { fx } : {}),
   }))
 
   const prices = {}

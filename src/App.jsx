@@ -1,9 +1,11 @@
-import { useLayoutEffect, useState } from 'react'
+import { useLayoutEffect, useMemo, useState } from 'react'
 import Assets from './pages/Assets'
 import Dashboard from './pages/Dashboard'
 import MonthlyUpdate from './pages/MonthlyUpdate'
 import Settings from './pages/Settings'
+import { normalize } from './lib/currency'
 import { setAmountsHidden } from './lib/format'
+import { useFxRates } from './lib/rates'
 import { setLang, t } from './lib/i18n'
 import { usePref } from './lib/prefs'
 import { setDark, systemPrefersDark } from './lib/theme'
@@ -21,8 +23,14 @@ export default function App() {
   setDark(dark)
 
   // Tüm veri burada bir kez yüklenir ve sekmelere aktarılır.
-  const portfolio = usePortfolio()
+  const store = usePortfolio()
   const [tab, setTab] = useState('panel')
+
+  // Döviz cinsinden varlıklar (dolarla alınan ETF, dolar hesabı…) için kurlar. Ekranlar ve hesaplar TL'ye
+  // çevrilmiş veriyi (data) kullanır; formlar ve yedek, kaydedildiği hâlini (raw). Bkz. lib/currency.js
+  const rates = useFxRates(store.data)
+  const data = useMemo(() => normalize(store.data, rates), [store.data, rates])
+  const portfolio = { ...store, data, raw: store.data, rates }
 
   // Gizlilik modu: açıkken tüm tutarlar ₺***,** olarak görünür. Tercih hatırlanır;
   // kafede gizleyip kapattıysan, siteyi tekrar açtığında da gizli başlar.

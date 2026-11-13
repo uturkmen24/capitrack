@@ -7,7 +7,8 @@ import TransactionList from '../components/TransactionList'
 import TypeBadge from '../components/TypeBadge'
 import { assetStateAt, checkTransactions } from '../lib/analytics'
 import { getType, splitByType } from '../lib/constants'
-import { currentMonth, formatPrice, formatQty, formatSignedTL, formatTL } from '../lib/format'
+import { assetCurrency, isCurrencyAsset, lastRawPrice } from '../lib/currency'
+import { currentMonth, formatPrice, formatPriceIn, formatQty, formatSignedTL, formatTL } from '../lib/format'
 import { t } from '../lib/i18n'
 import { usePref } from '../lib/prefs'
 
@@ -15,8 +16,9 @@ const btn = 'rounded-lg px-3 py-1.5 text-sm hover:bg-slate-100'
 
 // "Varlıklarım" ekranı: aynı türden birden fazla varlık türe göre gruplanır, tekler altta listelenir; her varlığın adedi, ortalama maliyeti,
 // değeri ve kâr/zararı görünür. Al / Sat, işlem geçmişi, düzenleme ve silme buradan yapılır.
+// data: TL'ye çevrilmiş veri (hesaplar için), raw: kaydedildiği hâli (döviz fiyatları kendi para birimiyle).
 export default function Assets({ portfolio }) {
-  const { data, addAsset, updateAsset, deleteAsset, addTransaction, deleteTransaction } = portfolio
+  const { data, raw, addAsset, updateAsset, deleteAsset, addTransaction, deleteTransaction } = portfolio
   const [adding, setAdding] = useState(false)
   // Hangi varlığın altında hangi panel açık: { id, kind: 'trade' | 'history' | 'edit' }
   const [panel, setPanel] = useState(null)
@@ -142,6 +144,7 @@ export default function Assets({ portfolio }) {
   // Bir varlığın satırı ve altında açılan paneli (Al / Sat, İşlemler, Düzenle).
   // showType: grupsuz listede türü belli olsun diye adın yanına tür rozeti konur.
   function renderItem({ asset, state }, showType) {
+    const hasTx = data.transactions.some((x) => x.assetId === asset.id)
     return (
       <div key={asset.id}>
         <AssetRow
@@ -152,19 +155,28 @@ export default function Assets({ portfolio }) {
           onPanel={(kind) => togglePanel(asset.id, kind)}
           activePanel={panel?.id === asset.id ? panel.kind : null}
           onDelete={() => handleDelete(asset)}
+          rawPrice={lastRawPrice(raw, asset, month)}
         />
         {panel?.id === asset.id && panel.kind === 'trade' && (
-          <TransactionForm asset={asset} state={state} onSubmit={(tx) => handleTrade(asset, tx)} onCancel={() => setPanel(null)} />
+          <TransactionForm
+            asset={asset}
+            state={state}
+            rawPrice={lastRawPrice(raw, asset, month)}
+            onSubmit={(tx) => handleTrade(asset, tx)}
+            onCancel={() => setPanel(null)}
+          />
         )}
         {panel?.id === asset.id && panel.kind === 'history' && (
-          <TransactionList asset={asset} transactions={data.transactions} onDelete={(tx) => handleDeleteTx(asset, tx)} />
+          <TransactionList asset={asset} transactions={raw.transactions} onDelete={(tx) => handleDeleteTx(asset, tx)} />
         )}
         {panel?.id === asset.id && panel.kind === 'edit' && (
           <div className="bg-slate-50 p-4">
             <AssetForm
               key={asset.id}
               asset={asset}
-              lockedMode={data.transactions.some((x) => x.assetId === asset.id) ? getType(asset.type).mode : null}
+              lockedMode={hasTx ? getType(asset.type).mode : null}
+              // Eski (para birimi kaydedilmemiş) döviz hesabının işlemleri zaten kur olduğundan para birimi seçilebilir
+              currencyLocked={hasTx && !(asset.type === 'doviz' && !asset.currency)}
               institutions={institutions}
               onSave={(fields) => {
                 updateAsset(asset.id, fields)
@@ -180,9 +192,10 @@ export default function Assets({ portfolio }) {
 }
 
 // Tek bir varlık satırı
-function AssetRow({ asset, state, showType, txCount, onPanel, activePanel, onDelete }) {
+function AssetRow({ asset, state, showType, txCount, onPanel, activePanel, onDelete, rawPrice }) {
   const type = getType(asset.type)
   const amountMode = type.mode === 'amount'
+  const currency = amountMode ? 'TRY' : assetCurrency(asset)
   const soldOut = state && state.value === 0 && state.cost === 0 && txCount > 0
   const active = (kind) => (activePanel === kind ? 'bg-slate-100 font-medium' : '')
 
@@ -191,6 +204,16 @@ function AssetRow({ asset, state, showType, txCount, onPanel, activePanel, onDel
   if (!state) detail = t('Henüz alış yok. “Al / Sat” ile ilk alışı ekle.', 'No purchases yet. Add the first one with “Buy / Sell”.')
   else if (soldOut) detail = `${t('Tamamı satıldı', 'Fully sold')} · ${realizedText}`
   else if (amountMode) detail = `${t('Yatırılan', 'Deposited')}: ${formatTL(state.cost)}`
+  else if (isCurrencyAsset(asset))
+    // Döviz hesabı: "1.000 USD · Ort. kur ₺47,60 · Güncel kur ₺50,05" (güncel kur canlı veriden)
+    detail = `${formatQty(state.qty)} ${currency} · ${t('Ort. kur', 'Avg. rate')} ${formatPrice(state.avg)} · ${t('Güncel kur', 'Current rate')} ${
+      state.price != null ? formatPrice(state.price) : '—'
+    }`
+  else if (currency !== 'TRY')
+    // Döviz cinsinden fiyat: "2 adet · Ort. maliyet ₺26.000,00 · Son fiyat $567,40 (₺28.398,37)"
+    detail = `${formatQty(state.qty)} ${type.unit} · ${t('Ort. maliyet', 'Avg. cost')} ${formatPrice(state.avg)} · ${t('Son fiyat', 'Last price')} ${
+      rawPrice != null ? formatPriceIn(rawPrice, currency) : '—'
+    }${state.price != null ? ` (${formatPrice(Math.round(state.price * 100) / 100)})` : ''}`
   else
     detail = `${formatQty(state.qty)} ${type.unit} · ${t('Ort. maliyet', 'Avg. cost')} ${formatPrice(state.avg)} · ${t('Son fiyat', 'Last price')} ${
       state.price != null ? formatPrice(state.price) : '—'

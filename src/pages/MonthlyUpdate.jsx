@@ -4,12 +4,15 @@ import ProfitLoss from '../components/ProfitLoss'
 import TypeBadge from '../components/TypeBadge'
 import { assetStateAt, isHeld } from '../lib/analytics'
 import { getType, splitByType } from '../lib/constants'
+import { assetCurrency, isCurrencyAsset, lastRawPrice, rateAt } from '../lib/currency'
 import {
   amountsHidden,
   amountToInput,
+  currencySymbol,
   currentMonth,
   formatMonth,
   formatPercent,
+  formatPrice,
   formatQty,
   formatSignedTL,
   formatTL,
@@ -25,7 +28,7 @@ const inputClass =
 // "Aylık Güncelleme" ekranı: bir ay seç, o ay elinde olan varlıkların fiyatlarını (mevduatta bakiyesini) gir.
 // Değer = adet × fiyat otomatik hesaplanır. Adetler Varlıklarım'daki alış/satış işlemlerinden gelir.
 export default function MonthlyUpdate({ portfolio, goToAssets }) {
-  const { data, saveMonth } = portfolio
+  const { data, raw, rates, saveMonth } = portfolio
   const [month, setMonth] = useState(currentMonth())
   const isCurrent = month === currentMonth()
 
@@ -84,41 +87,64 @@ export default function MonthlyUpdate({ portfolio, goToAssets }) {
       </div>
 
       {/* key={month}: ay değişince form sıfırdan, o ayın verisiyle açılır */}
-      <MonthForm key={month} month={month} data={data} onSave={saveMonth} />
+      <MonthForm key={month} month={month} data={data} raw={raw} rates={rates} onSave={saveMonth} />
     </div>
   )
 }
 
-function MonthForm({ month, data, onSave }) {
+// data: TL'ye çevrilmiş veri (hesaplar), raw: kaydedildiği hâli (döviz fiyatları kendi para birimiyle), rates: kurlar
+function MonthForm({ month, data, raw, rates, onSave }) {
   const [collapsed, setCollapsed] = usePref('capitrack:collapsed:monthly', [])
+  const prevMonth = shiftMonth(month, -1)
 
-  // O ay elinde olan varlıklar ve o ayki durumları
+  // O ay elinde olan varlıklar ve o ayki durumları.
+  // currency: fiyatın para birimi; auto: döviz hesabı (fiyatı kur, kullanıcı girmez); rate: o ayın kuru (bu ay için canlı)
   const rows = data.assets
-    .map((asset) => ({
-      asset,
-      type: getType(asset.type),
-      state: assetStateAt(data, asset, month),
-      prev: assetStateAt(data, asset, shiftMonth(month, -1)),
-    }))
+    .map((asset) => {
+      const type = getType(asset.type)
+      const currency = type.mode === 'amount' ? 'TRY' : assetCurrency(asset)
+      return {
+        asset,
+        month,
+        type,
+        currency,
+        auto: isCurrencyAsset(asset),
+        rate: rateAt(rates, currency, month),
+        state: assetStateAt(data, asset, month),
+        prev: assetStateAt(data, asset, prevMonth),
+        prevRaw: currency === 'TRY' ? null : lastRawPrice(raw, asset, prevMonth),
+      }
+    })
     .filter((r) => isHeld(r.state))
 
-  // Form ilk açıldığında: o ay girilmiş fiyat varsa o, yoksa son bilinen fiyat / bakiye
+  // Form ilk açıldığında: o ay girilmiş fiyat varsa o, yoksa son bilinen fiyat / bakiye.
+  // Döviz cinsinden varlıkta fiyat kendi para birimiyle gelir; döviz hesabının kutusu yoktur.
   const [inputs, setInputs] = useState(() =>
     Object.fromEntries(
-      rows.map((r) => [r.asset.id, amountToInput(r.type.mode === 'amount' ? r.state.value : r.state.price)]),
+      rows
+        .filter((r) => !r.auto)
+        .map((r) => [
+          r.asset.id,
+          amountToInput(r.type.mode === 'amount' ? r.state.value : r.currency === 'TRY' ? r.state.price : lastRawPrice(raw, r.asset, month)),
+        ]),
     ),
   )
   const [message, setMessage] = useState(null) // { ok: true/false, text }
 
-  const hasSavedPrices = Boolean(data.prices[month])
+  const autoIds = new Set(rows.filter((r) => r.auto).map((r) => r.asset.id))
+  const hasSavedPrices = Object.keys(raw.prices[month] ?? {}).some((id) => !autoIds.has(id))
+  const hasInputs = rows.some((r) => !r.auto)
   const parsed = Object.fromEntries(Object.entries(inputs).map(([id, v]) => [id, parseAmount(v)]))
   const invalid = Object.values(parsed).some((v) => Number.isNaN(v))
 
-  /** Formdaki fiyata göre o ayki değer (fiyat boşsa son bilinen değer) */
+  /** Formdaki fiyata göre o ayki değer (fiyat boşsa son bilinen değer). Döviz cinsinden fiyat o ayın kuruyla TL'ye çevrilir. */
   function liveValue(r) {
+    if (r.auto) return r.state.value
     const v = parsed[r.asset.id]
     if (!Number.isFinite(v)) return r.state.value
-    return r.type.mode === 'amount' ? v : r.state.qty * v
+    if (r.type.mode === 'amount') return v
+    if (r.currency !== 'TRY') return r.rate ? r.state.qty * v * r.rate : r.state.value
+    return r.state.qty * v
   }
 
   const total = rows.reduce((s, r) => s + liveValue(r), 0)
@@ -170,7 +196,7 @@ function MonthForm({ month, data, onSave }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {!hasSavedPrices && (
+      {!hasSavedPrices && hasInputs && (
         <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
           {t(
             'Bu ay için henüz fiyat girilmedi. Alanlar son bilinen fiyatlarla dolduruldu; değişenleri düzeltip kaydet.',
@@ -227,15 +253,22 @@ function MonthForm({ month, data, onSave }) {
   )
 }
 
-// Tek bir varlığın aylık satırı: "250 adet × [312,00] = ₺78.000" veya "Bakiye [139.200]"
+// Tek bir varlığın aylık satırı:
+//   "250 adet × [312,00]"            TL fiyatlı varlık
+//   "2 adet × $[567,40] × ₺50,05"    döviz cinsinden fiyat: dolar girilir, o ayın kuruyla TL'ye çevrilir
+//   "1.000 USD × ₺50,05"             döviz hesabı: kutu yok, kur otomatik
+//   "Bakiye [139.200]"               mevduat
 function MonthRow({ row, showType, input, parsedValue, value, onChange }) {
-  const { asset, type, state, prev } = row
+  const { asset, type, state, prev, currency, auto, rate, prevRaw } = row
   const amountMode = type.mode === 'amount'
+  const foreign = !amountMode && currency !== 'TRY'
   const bad = Number.isNaN(parsedValue)
   const blur = amountsHidden() ? 'blur-sm focus:blur-none' : ''
-  // Fiyatın geçen aya göre değişimi (sadece adetli varlıklarda)
-  const priceChange =
-    !amountMode && prev?.price > 0 && Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue / prev.price - 1 : null
+  // Fiyatın geçen aya göre değişimi (sadece adetli varlıklarda; döviz cinsinden fiyatta kendi para birimiyle, döviz hesabında kur)
+  let priceChange = null
+  if (auto) priceChange = prev?.price > 0 && state.price > 0 ? state.price / prev.price - 1 : null
+  else if (foreign) priceChange = prevRaw > 0 && parsedValue > 0 ? parsedValue / prevRaw - 1 : null
+  else if (!amountMode) priceChange = prev?.price > 0 && Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue / prev.price - 1 : null
 
   // Düzen: telefonda iki kat (üstte ad + değer, altta giriş), bilgisayarda tek satır (ad | giriş | değer).
   // "order" sınıfları, aynı parçaların ekran genişliğine göre farklı sırada dizilmesini sağlar.
@@ -251,24 +284,45 @@ function MonthRow({ row, showType, input, parsedValue, value, onChange }) {
           {priceChange !== null && Math.abs(priceChange) > 0.0005 && (
             <span className={priceChange > 0 ? 'text-emerald-700' : 'text-red-600'}>
               {' '}
-              · {t('fiyat', 'price')} {formatPercent(priceChange)}
+              · {auto ? t('kur', 'rate') : t('fiyat', 'price')} {formatPercent(priceChange)}
             </span>
           )}
         </p>
       </div>
 
-      <div className="order-3 col-span-2 flex items-center gap-2 text-sm sm:order-2 sm:col-span-1 sm:justify-end">
-        <span className="whitespace-nowrap tabular-nums text-slate-500">
-          {amountMode ? t('Bakiye', 'Balance') : `${formatQty(state.qty)} ${type.unit} ×`}
-        </span>
-        <input
-          className={`${inputClass} ${bad ? 'border-red-400 ring-2 ring-red-400/20' : ''} ${amountMode ? blur : ''}`}
-          value={input}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="—"
-          inputMode="decimal"
-          aria-label={`${asset.name} ${amountMode ? t('bakiyesi', 'balance') : type.priceLabel.toLowerCase()}`}
-        />
+      <div className="order-3 col-span-2 flex flex-wrap items-center gap-2 text-sm sm:order-2 sm:col-span-1 sm:justify-end">
+        {auto ? (
+          <span className="whitespace-nowrap tabular-nums text-slate-500">
+            {formatQty(state.qty)} {currency} × {state.price != null ? formatPrice(state.price) : '—'}{' '}
+            <span className="text-xs text-slate-400">
+              ({rate ? (row.month >= currentMonth() ? t('canlı kur', 'live rate') : t('ay sonu kuru', 'month-end rate')) : t('kur alınamadı', 'rate unavailable')})
+            </span>
+          </span>
+        ) : (
+          <>
+            <span className="whitespace-nowrap tabular-nums text-slate-500">
+              {amountMode ? t('Bakiye', 'Balance') : `${formatQty(state.qty)} ${type.unit} ×`}
+            </span>
+            <span className="relative">
+              {foreign && (
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">{currencySymbol(currency)}</span>
+              )}
+              <input
+                className={`${inputClass} ${foreign ? 'pl-7' : ''} ${bad ? 'border-red-400 ring-2 ring-red-400/20' : ''} ${amountMode ? blur : ''}`}
+                value={input}
+                onChange={(e) => onChange(e.target.value)}
+                placeholder="—"
+                inputMode="decimal"
+                aria-label={`${asset.name} ${amountMode ? t('bakiyesi', 'balance') : `${type.priceLabel.toLowerCase()} (${currency})`}`}
+              />
+            </span>
+            {foreign && (
+              <span className="whitespace-nowrap tabular-nums text-slate-500" title={t('O ayın kuru', 'Rate for that month')}>
+                × {rate ? formatPrice(rate) : t('kur yok', 'no rate')}
+              </span>
+            )}
+          </>
+        )}
       </div>
 
       <div className="order-2 whitespace-nowrap text-right sm:order-3 sm:min-w-36">

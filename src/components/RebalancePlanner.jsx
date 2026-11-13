@@ -34,7 +34,7 @@ const pill = (active) =>
 // Kayıtlı plandaki bir kalemin adı ve birimi. Türe göre planlarda ad, türün o anki dildeki adıdır
 // (plan Türkçe oluşturulup İngilizce açılsa da "Gold" yazsın). Varlık adları kullanıcının yazdığı gibi kalır.
 const moveLabel = (plan, m) => (plan.by === 'type' && m.typeId ? getType(m.typeId).label : m.label)
-const moveUnit = (m) => (m.typeId ? getType(m.typeId).unit : m.unit)
+const moveUnit = (m) => m.unitCode ?? (m.typeId ? getType(m.typeId).unit : m.unit)
 
 // "Kademeli portföy dengeleme": Panel'de açılır-kapanır bir kart.
 // Plan yoksa hedef formu, plan varsa adım adım yol haritası görünür. Plan ve işaretlenen adımlar bu tarayıcıda saklanır.

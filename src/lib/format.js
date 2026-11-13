@@ -61,6 +61,22 @@ export function formatPrice(n) {
   })
 }
 
+/** Birim fiyatı kendi para birimiyle yazar: (545, "USD") -> "$545,00", (312.5, "TRY") -> "₺312,50" */
+export function formatPriceIn(n, currency = 'TRY') {
+  return n.toLocaleString(locale(), {
+    style: 'currency',
+    currency,
+    currencyDisplay: 'narrowSymbol',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 4,
+  })
+}
+
+/** "USD" -> "$", "EUR" -> "€", "GBP" -> "£", "TRY" -> "₺" */
+export function currencySymbol(currency) {
+  return { TRY: '₺', USD: '$', EUR: '€', GBP: '£' }[currency] ?? currency
+}
+
 /** 1250.5 -> "1.250,5" (adet / gram / pay). Adet, elindeki miktarı ele verdiği için gizlilik modunda gizlenir. */
 export function formatQty(n) {
   return hidden ? '***' : n.toLocaleString(locale(), { maximumFractionDigits: 4 })

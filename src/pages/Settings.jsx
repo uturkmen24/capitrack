@@ -26,7 +26,8 @@ function download(content, type, filename) {
 
 // "Ayarlar" ekranı: yedek alma, yedekten geri yükleme, örnek veri ve sıfırlama.
 export default function Settings({ portfolio }) {
-  const { data, replaceData } = portfolio
+  // raw: kaydedildiği hâli (yedeğe bu girer, geri yüklenebilsin), data: TL'ye çevrilmiş hâli (Excel'e bu girer)
+  const { data, raw, replaceData } = portfolio
   const fileInput = useRef(null)
   const [message, setMessage] = useState(null) // { ok, text }
   const [exporting, setExporting] = useState(false)
@@ -35,7 +36,7 @@ export default function Settings({ portfolio }) {
 
   // Veriyi JSON dosyası olarak bilgisayara indirir (uygulamaya geri yüklemek için).
   function handleExport() {
-    download(JSON.stringify(data, null, 2), 'application/json', `capitrack-${t('yedek', 'backup')}-${today()}.json`)
+    download(JSON.stringify(raw, null, 2), 'application/json', `capitrack-${t('yedek', 'backup')}-${today()}.json`)
     setMessage({ ok: true, text: t('Yedek dosyası indirildi.', 'Backup file downloaded.') })
   }
 
@@ -137,8 +138,8 @@ export default function Settings({ portfolio }) {
         <h3 className="font-semibold">{t('Yedekle ve geri yükle', 'Back up and restore')}</h3>
         <p className="mt-1 text-sm text-slate-500">
           {t(
-            `Şu an kayıtlı: ${summarize(data)}, ${Object.keys(data.prices).length} aylık fiyat kaydı.`,
-            `Currently saved: ${summarize(data)}, ${Object.keys(data.prices).length} months of prices.`,
+            `Şu an kayıtlı: ${summarize(raw)}, ${Object.keys(raw.prices).length} aylık fiyat kaydı.`,
+            `Currently saved: ${summarize(raw)}, ${Object.keys(raw.prices).length} months of prices.`,
           )}
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
